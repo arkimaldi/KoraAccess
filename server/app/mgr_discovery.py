@@ -218,6 +218,15 @@ class MgrDiscovery:
             return [o for o in self._observations.values()
                     if now - o.seen_dts <= self.result_ttl]
 
+    def invalidate(self, eui64):
+        """
+        Descarta l'observació d'un EUI64 perquè sabem que ha quedat obsoleta,
+        típicament just després de vincular-lo: el que el discovery havia vist
+        és anterior al canvi i no s'ha d'usar per treure conclusions.
+        """
+        with self._lock:
+            self._observations.pop(eui64, None)
+
     def get_observation(self, eui64):
         now = time.time()
         with self._lock:

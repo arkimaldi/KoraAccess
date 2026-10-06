@@ -49,6 +49,10 @@ class Devices(db.Model):
     link = db.Column(db.String(20), nullable=False, default=LinkState.OFFLINE)
     link_kick_dts = db.Column(db.DateTime, nullable=True)
 
+    # Moment de la darrera vinculació. Una observació de discovery anterior a
+    # aquest instant és obsoleta i no serveix per detectar contradiccions.
+    linked_dts = db.Column(db.DateTime, nullable=True)
+
     # Moment en què es va ordenar l'alliberament
     delete_requested_dts = db.Column(db.DateTime, nullable=True)
 

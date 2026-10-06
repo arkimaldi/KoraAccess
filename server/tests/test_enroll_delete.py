@@ -37,6 +37,9 @@ class FakeDiscovery:
     def clear(self):
         self.obs = {}
 
+    def invalidate(self, eui64):
+        self.obs.pop(eui64, None)
+
     def get_observations(self):
         return list(self.obs.values())
 
@@ -240,6 +243,15 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self.client.post('/api/terminals/link', json={'eui64': EUI64})
         self.keep_alive(token='')
         self.ans_enroll(token='')
+
+        # Una observació ANTERIOR a la vinculació és obsoleta: cap avís
+        rows = self.client.get('/api/terminals').get_json()['terminals']
+        self.assertEqual(rows[0]['warnings'], [])
+
+        # Una observació POSTERIOR que el veu verge sí que és un reset per fora
+        import time as _t
+        _t.sleep(1.1)
+        self.discovery.put_virgin(EUI64)
         rows = self.client.get('/api/terminals').get_json()['terminals']
         self.assertTrue(any('resetejat' in w for w in rows[0]['warnings']))
 

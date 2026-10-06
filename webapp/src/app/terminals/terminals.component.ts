@@ -3,13 +3,27 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription, interval } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 
 import { TerminalsService } from '../services/terminals.service';
 import { LicenseInfo, Terminal } from '../models/terminal.model';
 
-/** El discovery s'emet cada 30 s, només mentre la pantalla és oberta. */
+/**
+ * Ritme normal: el discovery s'emet cada 30 s, només mentre la pantalla és
+ * oberta.
+ */
 const REFRESH_PERIOD_MS = 30000;
+
+/**
+ * Ritme ràpid mentre hi ha alguna operació en curs (enroll_pending o
+ * delete_pending). Només es refresca el llistat, que és una lectura local
+ * barata; el discovery segueix el seu ritme normal, perquè és broadcast a tota
+ * la xarxa del client i el canvi que esperem no ve d'ell sinó de la BBDD.
+ */
+const FAST_REFRESH_PERIOD_MS = 5000;
+
+/** Estats que indiquen que hi ha una operació en curs. */
+const PENDING_STATUS = ['enroll_pending', 'delete_pending'];
 
 @Component({
   selector: 'kora-terminals',
@@ -26,19 +40,41 @@ export class TerminalsComponent implements OnInit, OnDestroy {
   loading = false;
   errorMessage = '';
 
-  private timer?: Subscription;
+  private listTimer?: Subscription;
+  private scanTimer?: Subscription;
+  private lastScanAt = 0;
 
   constructor(private service: TerminalsService) {}
 
   ngOnInit(): void {
     this.refresh(true);
-    this.timer = interval(REFRESH_PERIOD_MS).subscribe(() => this.refresh(true));
+    this.scheduleNext();
   }
 
   ngOnDestroy(): void {
-    // En sortir de la pantalla s'atura el discovery: no s'emet broadcast
-    // de manera permanent.
-    this.timer?.unsubscribe();
+    // En sortir de la pantalla s'atura tot: no s'emet broadcast de manera
+    // permanent.
+    this.listTimer?.unsubscribe();
+    this.scanTimer?.unsubscribe();
+  }
+
+  /** Hi ha alguna vinculació o alliberament a mig fer. */
+  get hasPendingWork(): boolean {
+    return this.terminals.some(t => !!t.status && PENDING_STATUS.includes(t.status));
+  }
+
+  /**
+   * Reprograma el proper refresc segons si hi ha feina pendent. Es fa amb
+   * timer() en lloc d'interval() perquè el període pot canviar a cada cicle.
+   */
+  private scheduleNext(): void {
+    this.listTimer?.unsubscribe();
+    const period = this.hasPendingWork ? FAST_REFRESH_PERIOD_MS : REFRESH_PERIOD_MS;
+    this.listTimer = timer(period).subscribe(() => {
+      // El discovery manté el seu ritme encara que el llistat vagi més ràpid.
+      const withScan = Date.now() - this.lastScanAt >= REFRESH_PERIOD_MS;
+      this.refresh(withScan);
+    });
   }
 
   refresh(withScan = false): void {
@@ -49,11 +85,16 @@ export class TerminalsComponent implements OnInit, OnDestroy {
         this.license = res.license;
         this.serverUrl = res.server_url;
         this.loading = false;
+        this.scheduleNext();
       },
-      error: (err) => this.fail(err)
+      error: (err) => {
+        this.fail(err);
+        this.scheduleNext();
+      }
     });
 
     if (withScan) {
+      this.lastScanAt = Date.now();
       this.service.scan().subscribe({ next: () => load(), error: () => load() });
     } else {
       load();

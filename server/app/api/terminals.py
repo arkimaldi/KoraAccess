@@ -8,6 +8,7 @@ No són una màquina d'estats.
 """
 
 import logging
+from datetime import timezone
 
 from flask import Blueprint, jsonify, request, current_app
 
@@ -37,12 +38,26 @@ def _label_for_device(device, obs, server_url):
     return 'ASSIGNED' if device.is_assigned else 'ENROLLED'
 
 
+def _is_stale(device, obs):
+    """
+    Una observació anterior a la darrera vinculació és obsoleta: descriu el
+    dispositiu abans de configurar-lo, i usar-la generaria contradiccions
+    falses (p.ex. avisar d'un reset per fora just després de vincular).
+    """
+    if obs is None or device.linked_dts is None:
+        return False
+    return obs.seen_dts < device.linked_dts.replace(tzinfo=timezone.utc).timestamp()
+
+
 def _warnings_for_device(device, obs, server_url):
     """
     Contradiccions entre el que creu el programa i el que informa el
-    dispositiu. Només es poden detectar quan el discovery hi arriba.
+    dispositiu. Només es poden detectar quan el discovery hi arriba i quan
+    l'observació és posterior a la darrera vinculació.
     """
     warnings = []
+    if _is_stale(device, obs):
+        return warnings
     if device.status == DeviceStatus.ENROLLED and obs is not None:
         if obs.is_virgin():
             warnings.append('El dispositiu s\'ha resetejat per fora: cal esborrar-ne el registre.')
@@ -69,11 +84,11 @@ def _device_to_dict(device, obs, server_url):
         'link_kick_dts': device.link_kick_dts.isoformat() if device.link_kick_dts else None,
         'knet_id': device.knet_id,
         'image_version': device.image_version,
-        'ip_address': obs.ip_address if obs else device.ip_address,
+        'ip_address': obs.ip_address if (obs and not _is_stale(device, obs)) else device.ip_address,
         'web_securized': device.web_securized,
         'portal_name': device.portal_device.portal_name if device.is_assigned else None,
         'is_assigned': device.is_assigned,
-        'seen_in_discovery': obs is not None,
+        'seen_in_discovery': obs is not None and not _is_stale(device, obs),
         'warnings': _warnings_for_device(device, obs, server_url),
         'can_assign': (device.status == DeviceStatus.ENROLLED
                        and not device.is_assigned
@@ -167,6 +182,10 @@ def link_terminal():
     device, err = MgrDevices.create_pending(eui64, description)
     if device is None:
         return jsonify({'error': err}), 400
+
+    # L'observació que tenim és d'abans de configurar el dispositiu: queda
+    # obsoleta en el mateix moment de vincular-lo.
+    _discovery().invalidate(eui64)
 
     ok, err = _discovery().send_link(obs.ip_address, _server_url())
     if not ok:

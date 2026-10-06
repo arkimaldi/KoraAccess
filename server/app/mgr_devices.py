@@ -71,6 +71,7 @@ class MgrDevices:
                 existing.web_admin_password = secrets.token_urlsafe(16)
                 existing.link = LinkState.OFFLINE
                 existing.link_kick_dts = None
+                existing.linked_dts = utcnow()
                 if description:
                     existing.description = description
                 MgrLogs.add('relink', 'token regenerat', device=existing, commit=False)
@@ -83,7 +84,8 @@ class MgrDevices:
                 description=description or '',
                 cloud_remote_server_token=str(uuid.uuid4()),
                 web_admin_password=secrets.token_urlsafe(16),
-                link=LinkState.OFFLINE
+                link=LinkState.OFFLINE,
+                linked_dts=utcnow()
             )
             db.session.add(device)
             MgrLogs.add('link', 'registre creat en vincular', device=device, commit=False)
