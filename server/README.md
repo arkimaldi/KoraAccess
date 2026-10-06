@@ -42,6 +42,28 @@ app/api/terminals.py    API REST de la pantalla de Terminals
 static/                 Build de l'Angular
 ```
 
+## Migracions de l'esquema
+
+L'esquema es gestiona amb Flask-Migrate (Alembic), igual que a
+KapriCloudMainAPI. **`run.py` aplica les migracions pendents a l'arrencada**:
+el programa corre com a servei a casa del client, on no hi ha ningú per
+executar res a mà i on la base de dades conté els terminals ja enrolats i no
+es pot recrear.
+
+Després de canviar `db_models.py`:
+
+```bash
+flask db migrate -m "descripcio del canvi"   # genera la migració
+flask db upgrade                              # l'aplica (o arrenca run.py)
+```
+
+Cal `FLASK_APP=run.py` a l'entorn. Reviseu sempre el fitxer generat a
+`migrations/versions/` abans de pujar-lo: l'autogeneració no detecta
+renombraments i els proposa com a esborrar més crear, cosa que perdria dades.
+
+SQLite no admet `ALTER COLUMN` ni `DROP COLUMN`. Flask-Migrate ho resol amb
+`render_as_batch`, actiu per defecte, que recrea la taula.
+
 ## Proves
 
 ```bash

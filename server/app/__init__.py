@@ -7,9 +7,10 @@ import threading
 import time
 
 from flask import Flask, send_from_directory
+from flask_migrate import upgrade
 
 from config import CONFIG_BY_NAME
-from app.extensions import db
+from app.extensions import db, migrate
 from app.mgr_discovery import MgrDiscovery
 from app.mgr_link import MgrLink
 
@@ -21,6 +22,7 @@ def create_app(config_name='dev', start_background=True):
     app.config.from_object(CONFIG_BY_NAME[config_name])
 
     db.init_app(app)
+    migrate.init_app(app, db)
 
     from app.api.cloud_event import cloud_event_bp
     from app.api.terminals import terminals_bp
@@ -35,7 +37,7 @@ def create_app(config_name='dev', start_background=True):
     app.extensions['kora_discovery'] = discovery
 
     with app.app_context():
-        db.create_all()
+        _upgrade_database(app)
 
     # --- SPA d'Angular: build copiat a static/ ---
     @app.route('/', defaults={'path': ''})
@@ -54,6 +56,27 @@ def create_app(config_name='dev', start_background=True):
         _start_background_tasks(app, discovery)
 
     return app
+
+
+def _upgrade_database(app):
+    """
+    Porta l'esquema a l'última revisió a l'arrencada.
+
+    El programa s'instal·la com a servei a casa del client, on no hi ha ningú
+    per executar «flask db upgrade» a mà i on la base de dades conté els
+    terminals ja enrolats: no es pot recrear.
+
+    En els tests, que usen una base de dades en memòria i no tenen l'historial
+    de migracions, es crea l'esquema directament.
+    """
+    if app.config.get('TESTING') or app.config['SQLALCHEMY_DATABASE_URI'].endswith(':memory:'):
+        db.create_all()
+        return
+    try:
+        upgrade()
+    except Exception as e:
+        logging.error('No s\'ha pogut actualitzar l\'esquema: %s', e)
+        raise
 
 
 def _start_background_tasks(app, discovery):
