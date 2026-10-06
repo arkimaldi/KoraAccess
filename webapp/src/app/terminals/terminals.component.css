@@ -1,0 +1,47 @@
+.panel { background:#fff; border:1px solid #dcdfe4; border-radius:8px; padding:20px; }
+.panel-head { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.panel-head h2 { margin:0; font-size:18px; }
+.head-right { display:flex; align-items:center; gap:12px; }
+
+.license { font-size:13px; padding:4px 10px; border-radius:12px; background:#eef2f7; color:#33415c; }
+.license-full { background:#fde8e8; color:#9b1c1c; }
+
+.server-url { font-size:13px; color:#6b7280; margin:10px 0 0; }
+.server-url code { background:#f3f4f6; padding:2px 6px; border-radius:4px; }
+
+.alert { margin-top:12px; padding:10px 12px; border-radius:6px;
+         background:#fde8e8; color:#9b1c1c; font-size:14px; }
+
+.grid { width:100%; border-collapse:collapse; margin-top:16px; font-size:14px; }
+.grid th, .grid td { text-align:left; padding:10px 8px; border-bottom:1px solid #eceef1;
+                     vertical-align:top; }
+.grid th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; }
+.mono { font-family:ui-monospace,Consolas,monospace; font-size:13px; }
+.muted { color:#9ca3af; }
+.empty { text-align:center; color:#6b7280; padding:28px 8px; }
+.col-actions { white-space:nowrap; }
+
+.badge { display:inline-block; padding:3px 8px; border-radius:10px; font-size:12px;
+         font-weight:600; letter-spacing:.02em; }
+.badge-free           { background:#e6f4ea; color:#1e7e34; }
+.badge-linked         { background:#fff4e5; color:#92400e; }
+.badge-enrolled       { background:#e7f0fd; color:#1d4ed8; }
+.badge-assigned       { background:#e0e7ff; color:#3730a3; }
+.badge-foreign        { background:#f3f4f6; color:#6b7280; }
+.badge-delete_pending { background:#fde8e8; color:#9b1c1c; }
+
+.warn { margin-top:6px; font-size:12px; color:#92400e; max-width:280px; }
+
+.link { font-size:13px; }
+.link-online      { color:#1e7e34; }
+.link-lost        { color:#92400e; }
+.link-severe_lost { color:#9b1c1c; font-weight:600; }
+.link-offline     { color:#6b7280; }
+.link-unknown     { color:#9ca3af; }
+
+.btn { border:1px solid #d1d5db; background:#fff; border-radius:6px; padding:6px 10px;
+       font-size:13px; cursor:pointer; margin-right:6px; }
+.btn:hover:not(:disabled) { background:#f9fafb; }
+.btn:disabled { opacity:.55; cursor:default; }
+.btn-primary { border-color:#1d4ed8; color:#1d4ed8; }
+.btn-danger  { border-color:#dc2626; color:#dc2626; }

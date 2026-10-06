@@ -1,0 +1,66 @@
+<section class="panel">
+  <div class="panel-head">
+    <h2>Terminals</h2>
+    <div class="head-right">
+      <span class="license"
+            [class.license-full]="license.assigned >= license.limit">
+        Assignats {{ license.assigned }} / {{ license.limit }}
+      </span>
+      <button class="btn" (click)="refresh(true)" [disabled]="loading">
+        {{ loading ? 'Explorant…' : 'Explorar ara' }}
+      </button>
+    </div>
+  </div>
+
+  <p class="server-url" *ngIf="serverUrl">
+    Els terminals es vinculen a <code>{{ serverUrl }}</code>
+  </p>
+
+  <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>Descripció</th>
+        <th>EUI64</th>
+        <th>Model / FW</th>
+        <th>IP</th>
+        <th>Estat</th>
+        <th>Connexió</th>
+        <th>Porta</th>
+        <th class="col-actions">Accions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of terminals; trackBy: trackByEui64">
+        <td>{{ t.description || '—' }}</td>
+        <td class="mono">{{ t.eui64 }}</td>
+        <td>
+          <span *ngIf="t.knet_id !== null">{{ t.knet_id }}</span>
+          <span class="muted" *ngIf="t.image_version"> {{ t.image_version }}</span>
+          <span *ngIf="t.knet_id === null && !t.image_version">—</span>
+        </td>
+        <td class="mono">{{ t.ip_address || '—' }}</td>
+        <td>
+          <span [class]="labelClass(t)">{{ t.label }}</span>
+          <div class="warn" *ngFor="let w of t.warnings">{{ w }}</div>
+        </td>
+        <td><span [class]="linkClass(t)">{{ linkText(t) }}</span></td>
+        <td>{{ t.portal_name || '—' }}</td>
+        <td class="col-actions">
+          <button class="btn btn-primary" *ngIf="t.can_link" (click)="link(t)">Vincular</button>
+          <button class="btn" *ngIf="t.can_assign" (click)="assign(t)">Assignar a porta</button>
+          <button class="btn" *ngIf="t.is_assigned" (click)="unassign(t)">Desassignar</button>
+          <button class="btn" *ngIf="t.can_release" (click)="release(t)">Alliberar</button>
+          <button class="btn btn-danger" *ngIf="t.can_delete" (click)="remove(t)">Esborrar registre</button>
+        </td>
+      </tr>
+      <tr *ngIf="terminals.length === 0">
+        <td colspan="8" class="empty">
+          Cap terminal. Comproveu que els dispositius són a la mateixa xarxa
+          i premeu «Explorar ara».
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>

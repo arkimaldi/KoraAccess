@@ -1,0 +1,31 @@
+# ---- Python / server ----
+server/.venv/
+server/venv/
+__pycache__/
+*.py[cod]
+*.sqlite
+*.sqlite-journal
+server/.pytest_cache/
+
+# Build de l'Angular, copiat aquí per al desplegament
+server/static/*
+!server/static/.gitkeep
+
+# ---- Angular / webapp ----
+webapp/node_modules/
+webapp/dist/
+webapp/.angular/
+webapp/out-tsc/
+
+# ---- IDEs ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Certificats i secrets ----
+*.pem
+*.key
+*.pfx
+.env
