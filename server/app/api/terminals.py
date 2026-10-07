@@ -40,13 +40,23 @@ def _label_for_device(device, obs, server_url):
 
 def _is_stale(device, obs):
     """
-    Una observació anterior a la darrera vinculació és obsoleta: descriu el
-    dispositiu abans de configurar-lo, i usar-la generaria contradiccions
-    falses (p.ex. avisar d'un reset per fora just després de vincular).
+    Una observació és obsoleta si és anterior a l'últim canvi que coneixem
+    del dispositiu: la darrera vinculació o, sobretot, l'últim contacte seu.
+
+    Si el dispositiu ens ha trucat amb un token vàlid després d'una
+    observació, aquella observació ja no descriu el present: sabem del cert
+    que té la nostra URL configurada. Comparar només amb linked_dts no basta,
+    perquè entre la vinculació i el primer contacte poden passar minuts (per
+    exemple si la URL es configura a mà) i els scans d'aquest interval encara
+    veuen el dispositiu verge.
     """
-    if obs is None or device.linked_dts is None:
+    if obs is None:
         return False
-    return obs.seen_dts < device.linked_dts.replace(tzinfo=timezone.utc).timestamp()
+    marks = [d for d in (device.linked_dts, device.link_kick_dts) if d is not None]
+    if not marks:
+        return False
+    newest = max(d.replace(tzinfo=timezone.utc).timestamp() for d in marks)
+    return obs.seen_dts < newest
 
 
 def _warnings_for_device(device, obs, server_url):

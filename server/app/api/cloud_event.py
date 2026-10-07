@@ -226,18 +226,32 @@ def _enroll_device_step_2(device, msg_arg):
 
 def _delete_device_step_2(device, msg_arg):
     """
-    Si totes les instruccions han anat bé, s'esborra el registre. La
-    confirmació la dona el propi dispositiu, no el discovery.
+    S'esborra el registre si el dispositiu ha quedat lliure, és a dir si ha
+    pogut esborrar el token i aplicar la configuració. La confirmació la dona
+    el propi dispositiu, no el discovery.
     """
     results = _batch_results(msg_arg)
-    all_ok = (msg_arg.get('ucRet') == UC_RET_OK
-              and all(r.get('ucRet') == UC_RET_OK for r in results.values()))
 
-    if not all_ok:
+    clear_token = results.get(MsgId.CLEAR_TOKEN) or {}
+    apply_res = results.get(MsgId.APPLY) or {}
+
+    # Només són crítiques les instruccions que deixen el dispositiu lliure.
+    # La desprotecció del web no ho és: si mai es va arribar a protegir no té
+    # sentit exigir que es desprotegeixi, igual que a l'enrolament la
+    # protecció no bloqueja res.
+    critical_ok = (clear_token.get('ucRet') == UC_RET_OK
+                   and apply_res.get('ucRet') == UC_RET_OK)
+
+    if not critical_ok:
         MgrLogs.add('delete_failed',
                     ', '.join(f"{k}={v.get('ucRet')}" for k, v in results.items()),
                     device=device)
         return _empty_reply()
+
+    desecurize = results.get(MsgId.DESECURIZE) or {}
+    if desecurize.get('ucRet') != UC_RET_OK:
+        MgrLogs.add('web_not_desecurized', f"ucRet={desecurize.get('ucRet')}",
+                    device=device)
 
     MgrDevices.delete(device, reason='confirmat pel dispositiu')
     return _empty_reply()

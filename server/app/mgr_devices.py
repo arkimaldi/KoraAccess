@@ -102,13 +102,21 @@ class MgrDevices:
     @staticmethod
     def token_accepted(device, token):
         """
-        Mentre el registre és enroll_pending s'accepta el token buit, perquè
-        el dispositiu encara no en té. Un cop enrolled, només el token propi.
+        Només en estat enrolled s'exigeix el token propi. En qualsevol altre
+        estat s'accepta també el token buit, igual que a KapriCloudMainAPI
+        (cloud_remote_server_token_list).
+
+        Cal per als dos extrems del cicle de vida:
+          - enroll_pending: el dispositiu encara no té token.
+          - delete_pending: el lot d'esborrat li esborra el token i l'aplica
+            ABANS que respongui, de manera que la confirmació arriba amb el
+            token ja buit. Exigir-lo aquí deixaria el registre encallat per
+            sempre.
         """
         token = token or ''
-        if device.status == DeviceStatus.ENROLL_PENDING:
-            return token in ('', device.cloud_remote_server_token)
-        return token == device.cloud_remote_server_token
+        if device.status == DeviceStatus.ENROLLED:
+            return token == device.cloud_remote_server_token
+        return token in ('', device.cloud_remote_server_token)
 
     # ------------------------------------------------------------------
     # Enrolament

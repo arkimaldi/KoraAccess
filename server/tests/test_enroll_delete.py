@@ -104,7 +104,7 @@ class EnrollDeleteTestCase(unittest.TestCase):
             }
         }).get_json()
 
-    def ans_delete(self, token):
+    def ans_delete(self, token, desecurize_ret=0):
         return self.client.post('/v1/Cloud/Event', json={
             'msgType': MsgType.ANS_CLOUD_BATCH,
             'msgArg': {
@@ -113,7 +113,7 @@ class EnrollDeleteTestCase(unittest.TestCase):
                 'ucRet': 0,
                 'listBatch': [
                     {'msgType': 'ans_web_credentials_set',
-                     'msgArg': {'msgId': MsgId.DESECURIZE, 'ucRet': 0}},
+                     'msgArg': {'msgId': MsgId.DESECURIZE, 'ucRet': desecurize_ret}},
                     {'msgType': 'ans_cfg_write',
                      'msgArg': {'msgId': MsgId.CLEAR_TOKEN, 'ucRet': 0}},
                     {'msgType': 'ans_cfg_apply',
@@ -121,6 +121,14 @@ class EnrollDeleteTestCase(unittest.TestCase):
                 ]
             }
         }).get_json()
+
+    def enroll_device(self, securize_ret=0):
+        """Porta el dispositiu de verge a enrolat."""
+        self.discovery.put_virgin(EUI64)
+        self.client.post('/api/terminals/link', json={'eui64': EUI64})
+        self.keep_alive(token='')
+        self.ans_enroll(token='', securize_ret=securize_ret)
+        return Devices.query.filter_by(eui64=EUI64).first()
 
     # -- proves --------------------------------------------------------
     def test_unknown_eui64_is_rejected(self):
@@ -254,6 +262,61 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self.discovery.put_virgin(EUI64)
         rows = self.client.get('/api/terminals').get_json()['terminals']
         self.assertTrue(any('resetejat' in w for w in rows[0]['warnings']))
+
+
+    # -- casos detectats en proves amb maquinari real ----------------
+    def test_delete_confirmed_with_empty_token(self):
+        """
+        El lot d'esborrat esborra el token del dispositiu i l'aplica abans
+        que respongui, de manera que la confirmació arriba amb sToken buit.
+        S'ha d'acceptar igualment; si no, el registre queda en delete_pending
+        per sempre.
+        """
+        device = self.enroll_device()
+        device_id = device.device_id
+        self.client.post(f'/api/terminals/{device_id}/release')
+
+        self.keep_alive(token=device.cloud_remote_server_token)
+        self.ans_delete(token='')          # el dispositiu ja no té token
+        self.assertIsNone(Devices.query.filter_by(eui64=EUI64).first())
+
+    def test_delete_succeeds_if_only_web_fails(self):
+        """
+        Si el web no es va arribar a protegir, la desprotecció fallarà. No ha
+        de bloquejar l'esborrat, igual que a l'enrolament la protecció no
+        bloqueja res.
+        """
+        device = self.enroll_device(securize_ret=1)
+        self.assertFalse(device.web_securized)
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+
+        self.keep_alive(token=device.cloud_remote_server_token)
+        self.ans_delete(token='', desecurize_ret=4)
+        self.assertIsNone(Devices.query.filter_by(eui64=EUI64).first())
+
+    def test_no_false_reset_warning_after_manual_url_setup(self):
+        """
+        Entre la vinculació i el primer contacte poden passar minuts (URL
+        configurada a mà). Els scans d'aquest interval veuen el dispositiu
+        encara verge, però són anteriors a l'últim contacte: no han de
+        disparar l'avís de reset per fora.
+        """
+        self.discovery.put_virgin(EUI64)
+        self.client.post('/api/terminals/link', json={'eui64': EUI64})
+
+        # Scan posterior a la vinculació: el dispositiu encara no està configurat
+        import time as _t
+        _t.sleep(1.1)
+        self.discovery.put_virgin(EUI64)
+
+        # Ara sí, el dispositiu es configura i s'enrola
+        _t.sleep(1.1)
+        self.keep_alive(token='')
+        self.ans_enroll(token='')
+
+        rows = self.client.get('/api/terminals').get_json()['terminals']
+        self.assertEqual(rows[0]['label'], 'ENROLLED')
+        self.assertEqual(rows[0]['warnings'], [])
 
 
 if __name__ == '__main__':
