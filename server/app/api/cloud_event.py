@@ -137,6 +137,7 @@ def _delete_device_launch(device):
     Lot d'alliberament: restaurar la contrasenya del web, escriure la
     configuració amb el token buit i aplicar-la.
     """
+    cfg = current_app.config
     batch = [
         {
             'msgType': MsgType.INS_WEB_CREDENTIALS_SET,
@@ -151,9 +152,15 @@ def _delete_device_launch(device):
             'msgType': MsgType.INS_CFG_WRITE,
             'msgArg': {
                 'msgId': MsgId.CLEAR_TOKEN,
+                # NOMÉS s'esborra el token. La interfície cloud ha de quedar
+                # activada, igual que a KapriCloudMainAPI: la trama UDP de
+                # vinculació només configura la URL, de manera que un
+                # dispositiu alliberat amb el cloud apagat no tornaria a
+                # trucar mai en re-vincular-lo.
                 'cloud_remote_server_token': '',
-                'cloud_interface': False,
-                'cloud_allowed_events': '',
+                'cloud_interface': True,
+                'cloud_allowed_events': MsgType.ON_CLOUD_KEEP_ALIVE,
+                'cloud_keep_alive_timeout': cfg['DEVICES_KEEP_ALIVE_TMO'],
                 'http_interface': False,
                 'jso_interface': False
             }
@@ -197,11 +204,18 @@ def _on_ans_cloud_batch(device, msg_arg):
         MgrLogs.add('batch_failed', f"ucRet={msg_arg.get('ucRet')}", device=device)
         return _empty_reply()
 
+    # Cada resposta només s'accepta en l'estat que la va demanar, com a
+    # KapriCloudMainAPI. Si no es filtrés, una resposta d'enrolament
+    # endarrerida o duplicada que arribés amb el registre ja en
+    # delete_pending el tornaria a posar com a enrolled i avortaria
+    # l'alliberament.
     name = (msg_arg.get('msgId') or {}).get('name')
-    if name == MsgId.ENROLL_DEVICE_STEP_2:
-        return _enroll_device_step_2(device, msg_arg)
-    if name == MsgId.DELETE_DEVICE_STEP_2:
-        return _delete_device_step_2(device, msg_arg)
+    if device.status == DeviceStatus.ENROLL_PENDING:
+        if name == MsgId.ENROLL_DEVICE_STEP_2:
+            return _enroll_device_step_2(device, msg_arg)
+    elif device.status == DeviceStatus.DELETE_PENDING:
+        if name == MsgId.DELETE_DEVICE_STEP_2:
+            return _delete_device_step_2(device, msg_arg)
     return _empty_reply()
 
 
@@ -248,21 +262,25 @@ def _delete_device_step_2(device, msg_arg):
     results = _batch_results(msg_arg)
     clear_token = results.get(MsgId.CLEAR_TOKEN) or {}
     apply_res = results.get(MsgId.APPLY) or {}
+    desecurize = results.get(MsgId.DESECURIZE) or {}
 
-    # Només són crítiques les instruccions que deixen el dispositiu lliure.
-    # La desprotecció del web no ho és: si mai es va arribar a protegir no té
-    # sentit exigir que es desprotegeixi, igual que a l'enrolament la
-    # protecció no bloqueja res.
-    critical_ok = (clear_token.get('ucRet') == UC_RET_OK
-                   and apply_res.get('ucRet') == UC_RET_OK)
+    do_delete = (clear_token.get('ucRet') == UC_RET_OK
+                 and apply_res.get('ucRet') == UC_RET_OK)
 
-    if not critical_ok:
+    # La desprotecció del web només és exigible si de debò vam arribar a
+    # protegir-lo. Si va fallar llavors, no té sentit exigir-la ara; però si
+    # vam canviar la contrasenya i no la podem restaurar, no es pot esborrar
+    # el registre: el dispositiu quedaria amb una contrasenya que ja no sap
+    # ningú. Mateix criteri que KapriCloudMainAPI.
+    if device.web_securized and desecurize.get('ucRet') != UC_RET_OK:
+        do_delete = False
+
+    if not do_delete:
         MgrLogs.add('delete_failed',
                     ', '.join(f"{k}={v.get('ucRet')}" for k, v in results.items()),
                     device=device)
         return _empty_reply()
 
-    desecurize = results.get(MsgId.DESECURIZE) or {}
     if desecurize.get('ucRet') != UC_RET_OK:
         MgrLogs.add('web_not_desecurized', f"ucRet={desecurize.get('ucRet')}",
                     device=device)

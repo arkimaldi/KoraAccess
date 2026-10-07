@@ -311,6 +311,52 @@ class EnrollDeleteTestCase(unittest.TestCase):
         db.session.refresh(device)
         self.assertGreater(device.link_kick_dts, before)
 
+    def test_delete_batch_keeps_cloud_interface_on(self):
+        """
+        El lot d'alliberament només ha d'esborrar el token. Si apagués la
+        interfície cloud, el dispositiu no tornaria a trucar en re-vincular-lo,
+        perquè la trama UDP només li configura la URL.
+        """
+        device = self.enroll_device()
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+        ins = self.keep_alive(token=device.cloud_remote_server_token)
+
+        cfg = next(i['msgArg'] for i in ins['msgArg']['listBatch']
+                   if i['msgArg'].get('msgId') == MsgId.CLEAR_TOKEN)
+        self.assertEqual(cfg['cloud_remote_server_token'], '')
+        self.assertTrue(cfg['cloud_interface'])
+        self.assertEqual(cfg['cloud_allowed_events'], MsgType.ON_CLOUD_KEEP_ALIVE)
+
+    def test_delete_blocked_if_securized_web_cannot_be_restored(self):
+        """
+        Si vam canviar la contrasenya del web i no la podem restaurar, no es
+        pot esborrar el registre: el dispositiu quedaria amb una contrasenya
+        que ja no sap ningú.
+        """
+        device = self.enroll_device(securize_ret=0)
+        self.assertTrue(device.web_securized)
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+
+        self.keep_alive(token=device.cloud_remote_server_token)
+        self.ans_delete(token='', desecurize_ret=4)
+        self.assertIsNotNone(Devices.query.filter_by(eui64=EUI64).first())
+
+        # Amb la desprotecció correcta, sí que s'esborra
+        self.ans_delete(token='', desecurize_ret=0)
+        self.assertIsNone(Devices.query.filter_by(eui64=EUI64).first())
+
+    def test_enroll_reply_ignored_while_delete_pending(self):
+        """
+        Una resposta d'enrolament endarrerida no ha de ressuscitar un
+        dispositiu que s'està alliberant.
+        """
+        device = self.enroll_device()
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+
+        self.ans_enroll(token=device.cloud_remote_server_token)
+        db.session.refresh(device)
+        self.assertEqual(device.status, DeviceStatus.DELETE_PENDING)
+
     def test_nothing_to_do_returns_null(self):
         """
         Quan no hi ha instruccions es retorna null, no un msgType inventat: el

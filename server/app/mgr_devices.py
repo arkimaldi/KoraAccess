@@ -129,6 +129,13 @@ class MgrDevices:
             device.image_version = info_arg.get('sImageVersion')
             device.mac_address = info_arg.get('sMAC_Address')
             device.status = DeviceStatus.ENROLLED
+            # Kick explícit, com a KapriCloudMainAPI. Avui és redundant,
+            # perquè cloud_event ja refresca l'estat de connexió a cada crida
+            # vàlida, però deixa l'enrolament independent d'aquell detall: si
+            # algun dia es restringeix aquell refresc, un dispositiu acabat
+            # d'enrolar no es quedarà marcat com a offline.
+            device.link = LinkState.ONLINE
+            device.link_kick_dts = utcnow()
             MgrLogs.add('enrolled', f"model={device.knet_id} fw={device.image_version}",
                         device=device, commit=False)
             db.session.commit()
