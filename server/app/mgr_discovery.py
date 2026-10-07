@@ -199,11 +199,17 @@ class MgrDiscovery:
         cloud_allowed_events, el dispositiu tindria el cloud encès però no
         emetria cap keep-alive, i la vinculació no garantiria res.
 
+        Els quatre camps porten el nom natiu de configuració del terminal, de
+        manera que la trama mapeja un a un amb ins_cfg_write. La resposta de
+        discovery, en canvi, manté sRemoteUrl, que és la seva convenció
+        pròpia.
+
         Només aquests tres camps: qualsevol altra configuració viatjaria per
         UDP sense autenticar i sobreescriuria ajustos de l'instal·lador.
 
-        La URL ha de portar el DOMINI, mai la IP: el certificat del servidor
-        és un certificat públic real emès per a aquest domini i amb una IP no
+        La URL és l'endpoint sencer al qual el terminal farà el POST. En
+        producció ha de portar el DOMINI, mai la IP: el certificat és un
+        certificat públic real emès per a aquest domini i amb una IP no
         validaria. El token NO viatja per UDP; l'escriu la seqüència
         d'enrolament, que ja circula per HTTPS.
 
@@ -214,7 +220,7 @@ class MgrDiscovery:
         payload = json.dumps({
             'type': 'kapri_link',
             'cloud_interface': True,
-            'sRemoteUrl': server_url,
+            'cloud_remote_server_url': server_url,
             'cloud_allowed_events': MsgType.ON_CLOUD_KEEP_ALIVE,
             'cloud_keep_alive_timeout': keep_alive_tmo,
         }).encode('ascii')

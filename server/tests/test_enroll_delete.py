@@ -18,7 +18,7 @@ from app.mgr_discovery import DiscoveryObservation
 import time
 
 EUI64 = '001824FFFD000094'
-SERVER_URL = 'https://kora.exemple.com'
+SERVER_URL = 'https://kora.exemple.com/v1/Cloud/Event'
 
 
 class FakeDiscovery:
@@ -356,13 +356,13 @@ class EnrollDeleteTestCase(unittest.TestCase):
 
         payload = self.discovery.build_link_payload(frame[1], frame[2])
         self.assertTrue(payload['cloud_interface'])
-        self.assertEqual(payload['sRemoteUrl'], SERVER_URL)
+        self.assertEqual(payload['cloud_remote_server_url'], SERVER_URL)
         self.assertEqual(payload['cloud_allowed_events'], MsgType.ON_CLOUD_KEEP_ALIVE)
         self.assertEqual(payload['cloud_keep_alive_timeout'],
                          self.app.config['DEVICES_KEEP_ALIVE_TMO'])
         # Res més: la trama no ha de tocar cap altra configuració
         self.assertEqual(set(payload) - {'type'},
-                         {'cloud_interface', 'sRemoteUrl',
+                         {'cloud_interface', 'cloud_remote_server_url',
                           'cloud_allowed_events', 'cloud_keep_alive_timeout'})
 
     def test_delete_blocked_if_securized_web_cannot_be_restored(self):

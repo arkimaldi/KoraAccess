@@ -23,9 +23,14 @@ class BaseConfig:
     TLS_CERT_FILE = os.environ.get('KORAACCESS_TLS_CERT', '')
     TLS_KEY_FILE = os.environ.get('KORAACCESS_TLS_KEY', '')
 
-    # URL que es configura als terminals en vincular-los.
-    # Ha de portar el DOMINI, mai la IP: amb una IP el certificat no validaria.
-    SERVER_PUBLIC_URL = os.environ.get('KORAACCESS_PUBLIC_URL', 'https://kora.exemple.com')
+    # URL que es configura als terminals en vincular-los i a la qual faran el
+    # POST. És l'endpoint sencer, amb el camí, no només el host.
+    #
+    # En producció ha de portar el DOMINI, mai la IP: el certificat és un
+    # certificat públic real emès per a aquest domini i amb una IP no
+    # validaria. El DNS de la instal·lació el resol cap a la IP privada.
+    SERVER_PUBLIC_URL = os.environ.get('KORAACCESS_PUBLIC_URL',
+                                       'https://kora.exemple.com/v1/Cloud/Event')
 
     # --- Discovery UDP ---
     DISCOVERY_PORT = 60100
@@ -47,6 +52,13 @@ class DevConfig(BaseConfig):
     DEBUG = True
     LISTEN_PORT = 8080
     TLS_CERT_FILE = ''   # en desenvolupament, HTTP pla
+
+    # En desenvolupament s'hi va per IP i HTTP pla: no hi ha certificat a
+    # validar ni DNS que resolgui el domini. Ha de coincidir exactament amb el
+    # que té configurat el terminal, o el discovery el classificaria com a
+    # FOREIGN en lloc de LINKED.
+    SERVER_PUBLIC_URL = os.environ.get('KORAACCESS_PUBLIC_URL',
+                                       'http://10.0.0.144:8080/v1/Cloud/Event')
 
 
 CONFIG_BY_NAME = {'dev': DevConfig, 'prod': BaseConfig}
