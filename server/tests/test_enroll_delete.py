@@ -133,7 +133,7 @@ class EnrollDeleteTestCase(unittest.TestCase):
     # -- proves --------------------------------------------------------
     def test_unknown_eui64_is_rejected(self):
         r = self.keep_alive()
-        self.assertEqual(r['msgType'], 'ins_none')
+        self.assertIsNone(r)
         self.assertIsNone(Devices.query.filter_by(eui64=EUI64).first())
 
     def test_full_cycle(self):
@@ -293,6 +293,56 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self.keep_alive(token=device.cloud_remote_server_token)
         self.ans_delete(token='', desecurize_ret=4)
         self.assertIsNone(Devices.query.filter_by(eui64=EUI64).first())
+
+    def test_link_not_refreshed_while_delete_pending(self):
+        """
+        Amb el registre en delete_pending, les crides del dispositiu no han de
+        refrescar link_kick_dts. Si ho fessin, no arribaria mai a severe_lost
+        i l'esborrat manual quedaria inaccessible per sempre.
+        """
+        device = self.enroll_device()
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+        db.session.refresh(device)
+        before = device.link_kick_dts
+
+        import time as _t
+        _t.sleep(1.1)
+        self.keep_alive(token=device.cloud_remote_server_token)
+        db.session.refresh(device)
+        self.assertEqual(device.link_kick_dts, before)
+
+        # Un cop en severe_lost, l'esborrat manual ja és possible
+        device.link = LinkState.SEVERE_LOST
+        db.session.commit()
+        r = self.client.delete(f'/api/terminals/{device.device_id}')
+        self.assertEqual(r.status_code, 200)
+
+    def test_nothing_to_do_returns_null(self):
+        """
+        Quan no hi ha instruccions es retorna null, no un msgType inventat: el
+        firmware ho interpretaria com un error i reintentaria en bucle.
+        """
+        device = self.enroll_device()
+        ans = self.keep_alive(token=device.cloud_remote_server_token)
+        self.assertIsNone(ans)
+
+    def test_failed_batch_is_not_processed(self):
+        """Si el lot sencer ha fallat, no se'n miren les instruccions."""
+        device = self.enroll_device()
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+        self.client.post('/v1/Cloud/Event', json={
+            'msgType': MsgType.ANS_CLOUD_BATCH,
+            'msgArg': {
+                'sEUI64': EUI64, 'sToken': '',
+                'msgId': {'name': MsgId.DELETE_DEVICE_STEP_2},
+                'ucRet': 7,
+                'listBatch': [
+                    {'msgArg': {'msgId': MsgId.CLEAR_TOKEN, 'ucRet': 0}},
+                    {'msgArg': {'msgId': MsgId.APPLY, 'ucRet': 0}},
+                ]
+            }
+        })
+        self.assertIsNotNone(Devices.query.filter_by(eui64=EUI64).first())
 
     def test_no_false_reset_warning_after_manual_url_setup(self):
         """

@@ -26,8 +26,15 @@ cloud_event_bp = Blueprint('cloud_event', __name__)
 
 
 def _empty_reply():
-    """Res a fer: el dispositiu continua amb el seu cicle."""
-    return jsonify({'msgType': 'ins_none', 'msgArg': {}})
+    """
+    Res a fer.
+
+    Es retorna null, igual que a KapriCloudMainAPI, que és el que el firmware
+    espera quan el servidor no té instruccions. Inventar-se un msgType que el
+    protocol no coneix fa que el dispositiu ho tracti com un error i reintenti
+    immediatament, i es crea un bucle de crides.
+    """
+    return jsonify(None)
 
 
 @cloud_event_bp.route('/v1/Cloud/Event', methods=['POST'])
@@ -54,8 +61,12 @@ def cloud_event():
             MgrLogs.add('rejected_bad_token', f'msgType={msg_type}', device=device)
             return _empty_reply()
 
-        # Tota crida vàlida actualitza l'estat de connexió i la IP
-        MgrLink.on_device_call(device)
+        # L'estat de connexió només es refresca amb el dispositiu enrolat,
+        # com a KapriCloudMainAPI. Si es refresqués també en delete_pending, un
+        # registre encallat no arribaria mai a severe_lost i la pantalla no
+        # permetria esborrar-lo manualment.
+        if device.status == DeviceStatus.ENROLLED:
+            MgrLink.on_device_call(device)
         if request.remote_addr:
             device.ip_address = request.remote_addr
         db.session.commit()
@@ -182,6 +193,12 @@ def _batch_results(msg_arg):
 
 
 def _on_ans_cloud_batch(device, msg_arg):
+    # El lot sencer ha d'haver anat bé abans de mirar-ne les instruccions,
+    # com a KapriCloudMainAPI.
+    if msg_arg.get('ucRet') != UC_RET_OK:
+        MgrLogs.add('batch_failed', f"ucRet={msg_arg.get('ucRet')}", device=device)
+        return _empty_reply()
+
     name = (msg_arg.get('msgId') or {}).get('name')
     if name == MsgId.ENROLL_DEVICE_STEP_2:
         return _enroll_device_step_2(device, msg_arg)
@@ -231,7 +248,6 @@ def _delete_device_step_2(device, msg_arg):
     el propi dispositiu, no el discovery.
     """
     results = _batch_results(msg_arg)
-
     clear_token = results.get(MsgId.CLEAR_TOKEN) or {}
     apply_res = results.get(MsgId.APPLY) or {}
 
