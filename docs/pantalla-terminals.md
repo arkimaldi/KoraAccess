@@ -142,13 +142,28 @@ Dues proteccions, que cobreixen casos diferents:
 1. **Invalidació immediata.** En vincular, `MgrDiscovery.invalidate(eui64)`
    descarta l'observació d'aquell dispositiu, perquè sabem del cert que ha
    quedat obsoleta.
-2. **Marca de temps.** `Devices.linked_dts` guarda el moment de la darrera
-   vinculació. `_is_stale()` descarta qualsevol observació anterior a aquest
-   instant, cosa que cobreix la cursa on arriba una resposta de discovery
-   antiga poc després d'haver invalidat.
+2. **Marca de temps.** `_is_stale()` descarta qualsevol observació anterior al
+   més recent entre `Devices.linked_dts` (la darrera vinculació) i
+   `Devices.link_kick_dts` (l'últim contacte del dispositiu). Comparar només
+   amb `linked_dts` no bastava: entre la vinculació i el primer contacte poden
+   passar minuts, i els scans d'aquell interval encara veuen el dispositiu
+   verge. Si el dispositiu ens ha trucat amb un token vàlid després d'una
+   observació, aquella observació ja no descriu el present.
 
 Una observació obsoleta no genera avisos i tampoc compta per a
 `seen_in_discovery` ni per a la columna d'IP.
+
+### El mateix problema en esborrar
+
+Quan s'esborra un registre, l'observació que en teníem també queda obsoleta: diu
+que el dispositiu apunta a nosaltres, perquè el segon lot de l'alliberament
+(secció 6.2) encara no li ha buidat la URL. Sense descartar-la, la pantalla el
+mostraria com a «desconegut que ens apunta» i demanaria un reset físic fins que
+caduqués sola, fins a 90 s després.
+
+Per això `MgrDevices.delete()` invalida l'observació i, a més, programa un scan
+(secció 7). Es fa dins de `delete()` i no als llocs que la criden, de manera que
+cobreix tant la confirmació del dispositiu com l'esborrat manual.
 
 ### La regla general
 
@@ -157,7 +172,87 @@ Una observació obsoleta no genera avisos i tampoc compta per a
 
 ---
 
-## 6. Endpoints
+## 6. Vinculació i alliberament
+
+Les dues operacions són inverses, i totes dues tenen una restricció que ve del
+canal: **el que es pot fer per UDP i el que ha d'anar per HTTPS**.
+
+### 6.1 Vinculació: una trama UDP
+
+El botó Vincular envia un únic datagrama unicast al port 60100:
+
+```json
+{
+  "type": "kapri_link",
+  "cloud_interface": true,
+  "cloud_remote_server_url": "https://kora.exemple.com/v1/Cloud/Event",
+  "cloud_allowed_events": "on_cloud_keep_alive",
+  "cloud_keep_alive_timeout": 10
+}
+```
+
+Quatre camps i cap més. Són els mateixos paràmetres crítics que KapriCloudMainAPI
+força en tota configuració que envia, i per la mateixa raó: deixar el dispositiu
+en condicions de parlar amb el servidor.
+
+- **`cloud_interface` i `cloud_allowed_events` hi han de ser.** Amb la interfície
+  apagada, o sense declarar el keep-alive com a esdeveniment permès, el terminal
+  tindria la URL escrita i no trucaria mai.
+- **La URL és l'endpoint sencer**, amb el camí, no només el host. En producció
+  ha de portar el domini i mai la IP, perquè el certificat és un certificat
+  públic real emès per a aquest domini.
+- **El token no hi viatja.** S'escriu durant l'enrolament, que ja circula per
+  HTTPS. La trama UDP no està autenticada.
+- **Res més.** Qualsevol altre paràmetre sobreescriuria per UDP ajustos de
+  l'instal·lador. El firmware aplica una llista blanca d'aquests quatre.
+- **Un dispositiu ja vinculat no es re-vincula.** Si s'acceptés, qualsevol equip
+  de la xarxa podria redirigir els terminals a un altre servidor. Alliberar-lo
+  exigeix un reset físic.
+
+### 6.2 Alliberament: dos lots encadenats
+
+L'alliberament no es pot fer en un sol lot, i el motiu no és obvi:
+
+> El dispositiu executa el lot sencer i **només després** envia la confirmació.
+> Un lot que apagui la interfície cloud o buidi la URL es talla el canal a si
+> mateix, i la confirmació no arriba mai.
+
+Per això hi ha dos lots:
+
+| | Quan | Què fa | `bReply` |
+|---|---|---|---|
+| `delete_device_step_2` | En resposta al keep-alive | Desprotegeix el web i esborra **només el token** | `true` |
+| `unlink_device` | Encadenat a la confirmació | Buida la URL i apaga el cloud | `false` |
+
+El registre s'esborra en rebre la confirmació del primer lot. El segon viatja en
+la resposta a aquell mateix POST, que és l'última ocasió de parlar amb el
+dispositiu, i no espera resposta perquè en aplicar-lo es talla el canal.
+
+La neteja final és necessària per dues raons: un terminal retirat però endollat
+seguiria trucant i omplint el log de rebuigs, i mentre conservés la URL el
+discovery el classificaria com a vinculat i la pantalla no oferiria el botó
+Vincular.
+
+**Risc assumit:** si el segon lot es perd, el terminal queda amb el cloud encès i
+sense token. Només es recupera amb un reset físic. La finestra és de
+mil·lisegons.
+
+### 6.3 Quan la confirmació bloqueja i quan no
+
+De l'alliberament només són crítiques les instruccions que deixen el dispositiu
+lliure: esborrar el token i aplicar. La desprotecció del web és condicional:
+
+- Si `web_securized` és **fals**, el resultat s'ignora. No es va arribar a
+  canviar la contrasenya, així que no té sentit exigir restaurar-la.
+- Si és **cert** i la desprotecció falla, **no s'esborra el registre**. El
+  dispositiu quedaria amb una contrasenya de web que ja no sap ningú.
+
+És el mateix criteri que l'enrolament aplica a la protecció: no bloqueja, però
+es desa `web_securized` a fals i queda registrat.
+
+---
+
+## 7. Endpoints
 
 ### `GET /api/terminals`
 
@@ -189,16 +284,19 @@ global. **Retorna immediatament, sense esperar cap resposta.**
 
 ---
 
-## 7. Temps i asincronia
+## 8. Temps i asincronia
 
-Hi ha tres rellotges independents, i convé tenir-los presents perquè expliquen
-la majoria de comportaments que semblen estranys:
+Hi ha diversos rellotges independents, i convé tenir-los presents perquè
+expliquen la majoria de comportaments que semblen estranys:
 
 | Què | Valor | On es configura |
 |---|---|---|
 | Període de discovery | 30 s | `DISCOVERY_PERIOD` / frontend |
 | Caducitat d'una observació | 90 s | `DISCOVERY_RESULT_TTL` |
+| Scan després d'esborrar | 3 s de retard | `DISCOVERY_RESCAN_DELAY` |
 | Refresc del llistat | 30 s, o 5 s si hi ha feina pendent | `REFRESH_PERIOD_MS` / `FAST_REFRESH_PERIOD_MS` |
+| Keep-alive del dispositiu | 10 s | `DEVICES_KEEP_ALIVE_TMO` |
+| Pas a `lost` / `severe_lost` | 150 s / 300 s | `DEVICES_LOST_TMO` / `DEVICES_SEVERE_LOST_TMO` |
 
 ### L'scan i el llistat no estan sincronitzats
 
@@ -223,6 +321,19 @@ refresca cada 5 s en lloc de 30. **L'scan manté el seu ritme de 30 s**, perquè
 El ritme es lliga a l'estat i no a una finestra de temps fixa, de manera que
 cobreix també els enrolaments lents i l'alliberament.
 
+### L'scan diferit després d'esborrar
+
+En esborrar un registre es programa un scan, perquè el dispositiu alliberat torni
+a sortir com a disponible de seguida i no d'aquí a un cicle sencer de 30 s.
+
+**És diferit, no immediat.** El segon lot de l'alliberament viatja en la mateixa
+resposta HTTP que acompanya l'esborrat, de manera que en aquell instant el
+terminal encara no l'ha aplicat i respondria amb la URL posada. El retard dona
+temps a aplicar-lo.
+
+Val la pena notar que aquest és un dels pocs llocs on el servidor emet un scan
+per iniciativa pròpia: la resta els demana sempre el frontend.
+
 ### El listener escolta sempre
 
 L'emissió només es produeix quan el frontend ho demana, però el listener del
@@ -238,7 +349,7 @@ DHCP.
 
 ---
 
-## 8. Resum de regles
+## 9. Resum de regles
 
 1. El cicle de vida no depèn mai del discovery.
 2. Que un dispositiu no surti al discovery no indica res.
@@ -246,4 +357,8 @@ DHCP.
 4. Les etiquetes es calculen al servidor; el frontend no les dedueix.
 5. Els avisos són contradiccions, no estats.
 6. Deduplicació per EUI64, mai per IP.
-7. El discovery només s'emet mentre la pantalla és oberta.
+7. El discovery només s'emet mentre la pantalla és oberta, llevat de l'scan
+   diferit que segueix un esborrat.
+8. El que es pot fer per UDP és només deixar el dispositiu en condicions de
+   trucar; tota la resta va per HTTPS.
+9. Un lot d'instruccions no pot tallar el canal pel qual ha de confirmar-se.
