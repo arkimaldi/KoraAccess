@@ -134,8 +134,16 @@ def _enroll_device_launch(device):
 
 def _delete_device_launch(device):
     """
-    Lot d'alliberament: restaurar la contrasenya del web, deixar la
-    configuració de cloud com de fàbrica i aplicar-la.
+    Primer lot de l'alliberament: desprotegeix el web i esborra el token,
+    però NO toca la interfície cloud ni la URL.
+
+    És deliberat. El dispositiu executa tot el lot i només després envia la
+    confirmació, de manera que si aquest lot apagués el cloud o buidés la URL
+    es tallaria el canal a si mateix i la confirmació no arribaria mai. El
+    registre es quedaria en delete_pending per sempre.
+
+    La neteja final la fa el segon lot (_unlink_device_launch), un cop rebuda
+    la confirmació.
     """
     batch = [
         {
@@ -151,22 +159,7 @@ def _delete_device_launch(device):
             'msgType': MsgType.INS_CFG_WRITE,
             'msgArg': {
                 'msgId': MsgId.CLEAR_TOKEN,
-                # El dispositiu ha de quedar com de fàbrica: sense token,
-                # sense URL i amb el cloud apagat. És l'operació inversa de la
-                # vinculació, que és qui el torna a activar.
-                #
-                # Esborrar la URL és imprescindible perquè el discovery el
-                # torni a reportar com a verge; si hi quedés escrita, la
-                # pantalla el classificaria com a LINKED o FOREIGN i no
-                # oferiria el botó Vincular.
-                #
-                # Divergeix de KapriCloudMainAPI, que deixa el cloud encès
-                # perquè allà no hi ha cap trama de vinculació que el pugui
-                # tornar a activar.
                 'cloud_remote_server_token': '',
-                'cloud_remote_server_url': '',
-                'cloud_interface': False,
-                'cloud_allowed_events': '',
                 'http_interface': False,
                 'jso_interface': False
             }
@@ -179,11 +172,45 @@ def _delete_device_launch(device):
     return _ins_cloud_batch(MsgId.DELETE_DEVICE_STEP_2, batch)
 
 
-def _ins_cloud_batch(msg_id_name, batch):
+def _unlink_device_launch():
+    """
+    Segon lot de l'alliberament: buida la URL i apaga la interfície cloud,
+    de manera que el dispositiu quedi com de fàbrica.
+
+    Va amb bReply fals: en aplicar-lo el dispositiu es talla el canal, i per
+    tant no pot respondre. Tampoc cal, perquè el registre ja s'ha esborrat.
+
+    Buidar la URL és imprescindible perquè el discovery el torni a reportar
+    com a verge; si hi quedés escrita, la pantalla el classificaria com a
+    LINKED o FOREIGN i no oferiria el botó Vincular. I apagar el cloud evita
+    que un terminal retirat però endollat segueixi trucant indefinidament.
+
+    Divergeix de KapriCloudMainAPI, que deixa el cloud encès perquè allà no hi
+    ha cap trama de vinculació que el pugui tornar a activar.
+    """
+    batch = [
+        {
+            'msgType': MsgType.INS_CFG_WRITE,
+            'msgArg': {
+                'msgId': MsgId.UNLINK,
+                'cloud_remote_server_url': '',
+                'cloud_interface': False,
+                'cloud_allowed_events': ''
+            }
+        },
+        {
+            'msgType': MsgType.INS_CFG_APPLY,
+            'msgArg': {'msgId': MsgId.APPLY}
+        },
+    ]
+    return _ins_cloud_batch(MsgId.UNLINK_DEVICE, batch, b_reply=False)
+
+
+def _ins_cloud_batch(msg_id_name, batch, b_reply=True):
     return jsonify({
         'msgType': MsgType.INS_CLOUD_BATCH,
         'msgArg': {
-            'bReply': True,
+            'bReply': b_reply,
             'msgId': {'name': msg_id_name},
             'listBatch': batch
         }
@@ -292,4 +319,8 @@ def _delete_device_step_2(device, msg_arg):
                     device=device)
 
     MgrDevices.delete(device, reason='confirmat pel dispositiu')
-    return _empty_reply()
+
+    # El registre ja no hi és: el dispositiu és lliure des del punt de vista
+    # del programa. S'encadena el segon lot en la resposta a aquest mateix
+    # POST, que és l'última ocasió de parlar-hi.
+    return _unlink_device_launch()

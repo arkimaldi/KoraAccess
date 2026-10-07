@@ -326,19 +326,40 @@ class EnrollDeleteTestCase(unittest.TestCase):
         db.session.refresh(device)
         self.assertGreater(device.link_kick_dts, before)
 
-    def test_delete_batch_leaves_device_as_factory(self):
+    def test_first_delete_batch_keeps_channel_open(self):
         """
-        El lot d'alliberament ha de deixar el dispositiu com de fàbrica: sense
-        token, sense URL i amb el cloud apagat. Esborrar la URL és
-        imprescindible perquè el discovery el torni a reportar com a verge.
+        El primer lot només esborra el token. Si apagués el cloud o buidés la
+        URL, el dispositiu es tallaria el canal abans de poder confirmar i el
+        registre es quedaria en delete_pending per sempre.
         """
         device = self.enroll_device()
         self.client.post(f'/api/terminals/{device.device_id}/release')
         ins = self.keep_alive(token=device.cloud_remote_server_token)
 
+        self.assertTrue(ins['msgArg']['bReply'])
         cfg = next(i['msgArg'] for i in ins['msgArg']['listBatch']
                    if i['msgArg'].get('msgId') == MsgId.CLEAR_TOKEN)
         self.assertEqual(cfg['cloud_remote_server_token'], '')
+        self.assertNotIn('cloud_interface', cfg)
+        self.assertNotIn('cloud_remote_server_url', cfg)
+
+    def test_second_batch_leaves_device_as_factory(self):
+        """
+        En confirmar-se el primer lot, s'esborra el registre i s'encadena el
+        segon, que buida la URL i apaga el cloud. Va sense resposta: en
+        aplicar-lo el dispositiu es talla el canal.
+        """
+        device = self.enroll_device()
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+        self.keep_alive(token=device.cloud_remote_server_token)
+
+        ins = self.ans_delete(token='')
+        self.assertIsNone(Devices.query.filter_by(eui64=EUI64).first())
+
+        self.assertEqual(ins['msgArg']['msgId']['name'], MsgId.UNLINK_DEVICE)
+        self.assertFalse(ins['msgArg']['bReply'])
+        cfg = next(i['msgArg'] for i in ins['msgArg']['listBatch']
+                   if i['msgArg'].get('msgId') == MsgId.UNLINK)
         self.assertEqual(cfg['cloud_remote_server_url'], '')
         self.assertFalse(cfg['cloud_interface'])
 

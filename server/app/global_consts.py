@@ -32,11 +32,13 @@ class MsgId:
     """Etiquetes de lot (msgId.name) i d'instrucció."""
     ENROLL_DEVICE_STEP_2 = 'enroll_device_step_2'
     DELETE_DEVICE_STEP_2 = 'delete_device_step_2'
+    UNLINK_DEVICE = 'unlink_device'
     GET_INFO = 'get_info'
     SECURIZE = 'securize'
     DESECURIZE = 'desecurize'
     SET_TOKEN = 'set_token'
     CLEAR_TOKEN = 'clear_token'
+    UNLINK = 'unlink'
     APPLY = 'apply'
 
 
