@@ -50,6 +50,21 @@ class FakeDiscovery:
         self.links_sent.append((ip, url, keep_alive_tmo))
         return True, None
 
+    def build_link_payload(self, url, keep_alive_tmo):
+        """Replica el payload real per poder-ne verificar els camps."""
+        import json as _json
+        from app.mgr_discovery import MgrDiscovery as _Real
+        captured = {}
+
+        class _Sock:
+            def sendto(self, payload, addr):
+                captured.update(_json.loads(payload.decode()))
+
+        real = _Real(60199, b'X', 90)
+        real._sock = _Sock()
+        real.send_link('10.0.0.1', url, keep_alive_tmo)
+        return captured
+
     def send_discovery(self):
         return ['255.255.255.255']
 
@@ -338,6 +353,17 @@ class EnrollDeleteTestCase(unittest.TestCase):
         frame = self.discovery.links_sent[-1]
         self.assertEqual(frame[1], SERVER_URL)
         self.assertEqual(frame[2], self.app.config['DEVICES_KEEP_ALIVE_TMO'])
+
+        payload = self.discovery.build_link_payload(frame[1], frame[2])
+        self.assertTrue(payload['cloud_interface'])
+        self.assertEqual(payload['sRemoteUrl'], SERVER_URL)
+        self.assertEqual(payload['cloud_allowed_events'], MsgType.ON_CLOUD_KEEP_ALIVE)
+        self.assertEqual(payload['cloud_keep_alive_timeout'],
+                         self.app.config['DEVICES_KEEP_ALIVE_TMO'])
+        # Res més: la trama no ha de tocar cap altra configuració
+        self.assertEqual(set(payload) - {'type'},
+                         {'cloud_interface', 'sRemoteUrl',
+                          'cloud_allowed_events', 'cloud_keep_alive_timeout'})
 
     def test_delete_blocked_if_securized_web_cannot_be_restored(self):
         """

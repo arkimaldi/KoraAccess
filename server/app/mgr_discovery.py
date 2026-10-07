@@ -24,6 +24,8 @@ import struct
 import threading
 import time
 
+from app.global_consts import MsgType
+
 DISCOVERY_TYPE = 'kapri_discovery'
 
 
@@ -188,9 +190,14 @@ class MgrDiscovery:
     def send_link(self, ip_address, server_url, keep_alive_tmo):
         """
         Vinculació: instrucció UDP unicast que deixa el dispositiu en
-        condicions de trucar al servidor. Configura tres coses i cap més:
-        activa la interfície cloud, hi escriu la URL i hi fixa la cadència de
-        keep-alive.
+        condicions de trucar al servidor. Configura quatre coses i cap més:
+        activa la interfície cloud, hi escriu la URL, declara el keep-alive
+        com a esdeveniment permès i en fixa la cadència.
+
+        Són els mateixos paràmetres crítics que KapriCloudMainAPI força en
+        tota configuració que envia (add_critical_cfg_to_hardware_cfg). Sense
+        cloud_allowed_events, el dispositiu tindria el cloud encès però no
+        emetria cap keep-alive, i la vinculació no garantiria res.
 
         Només aquests tres camps: qualsevol altra configuració viatjaria per
         UDP sense autenticar i sobreescriuria ajustos de l'instal·lador.
@@ -208,6 +215,7 @@ class MgrDiscovery:
             'type': 'kapri_link',
             'cloud_interface': True,
             'sRemoteUrl': server_url,
+            'cloud_allowed_events': MsgType.ON_CLOUD_KEEP_ALIVE,
             'cloud_keep_alive_timeout': keep_alive_tmo,
         }).encode('ascii')
         try:
