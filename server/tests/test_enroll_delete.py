@@ -416,6 +416,37 @@ class EnrollDeleteTestCase(unittest.TestCase):
         db.session.refresh(device)
         self.assertEqual(device.status, DeviceStatus.DELETE_PENDING)
 
+    def test_observation_invalidated_on_delete(self):
+        """
+        En esborrar el registre, l'observació de discovery d'aquell EUI64 ha de
+        descartar-se: encara diu que el dispositiu apunta a nosaltres, perquè
+        el segon lot (que buida la URL) no s'ha aplicat fins després. Si no es
+        descartés, la pantalla el mostraria com a «desconegut que ens apunta» i
+        demanaria un reset físic.
+        """
+        device = self.enroll_device()
+        self.discovery.put_linked(EUI64, SERVER_URL)
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+        self.keep_alive(token=device.cloud_remote_server_token)
+        self.ans_delete(token='')
+
+        self.assertIsNone(Devices.query.filter_by(eui64=EUI64).first())
+        self.assertIsNone(self.discovery.get_observation(EUI64))
+
+        rows = self.client.get('/api/terminals').get_json()['terminals']
+        self.assertEqual(rows, [])
+
+    def test_observation_invalidated_on_manual_delete(self):
+        """El mateix per a l'esborrat manual del registre."""
+        device = self.enroll_device()
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+        device.link = LinkState.SEVERE_LOST
+        db.session.commit()
+        self.discovery.put_linked(EUI64, SERVER_URL)
+
+        self.client.delete(f'/api/terminals/{device.device_id}')
+        self.assertIsNone(self.discovery.get_observation(EUI64))
+
     def test_nothing_to_do_returns_null(self):
         """
         Quan no hi ha instruccions es retorna null, no un msgType inventat: el

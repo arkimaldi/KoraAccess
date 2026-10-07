@@ -172,15 +172,32 @@ class MgrDevices:
     @staticmethod
     def delete(device, reason=''):
         """Esborra el registre i les files dependents."""
+        eui64 = device.eui64
         try:
-            MgrLogs.add('deleted', reason, eui64=device.eui64, commit=False)
+            MgrLogs.add('deleted', reason, eui64=eui64, commit=False)
             db.session.delete(device)
             db.session.commit()
-            return True
         except Exception as e:
             logging.error('delete exception: %s', e)
             db.session.rollback()
             return False
+
+        # L'observació de discovery que tinguem d'aquest EUI64 és d'abans de
+        # l'esborrat i ha quedat obsoleta: encara diu que el dispositiu apunta
+        # a nosaltres. Si no es descarta, la pantalla el mostraria com a
+        # «desconegut que ens apunta» i demanaria un reset físic, fins que
+        # caduqués sola.
+        MgrDevices._invalidate_observation(eui64)
+        return True
+
+    @staticmethod
+    def _invalidate_observation(eui64):
+        try:
+            discovery = current_app.extensions.get('kora_discovery')
+            if discovery is not None:
+                discovery.invalidate(eui64)
+        except Exception as e:
+            logging.error('invalidate observation exception: %s', e)
 
     @staticmethod
     def can_delete_manually(device):
