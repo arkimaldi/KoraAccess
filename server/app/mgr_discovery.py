@@ -185,19 +185,30 @@ class MgrDiscovery:
         logging.debug('Discovery emès a %s', sent)
         return sent
 
-    def send_link(self, ip_address, server_url):
+    def send_link(self, ip_address, server_url, keep_alive_tmo):
         """
-        Vinculació: instrucció UDP unicast que configura al dispositiu la URL
-        del servidor.
+        Vinculació: instrucció UDP unicast que deixa el dispositiu en
+        condicions de trucar al servidor. Configura tres coses i cap més:
+        activa la interfície cloud, hi escriu la URL i hi fixa la cadència de
+        keep-alive.
+
+        Només aquests tres camps: qualsevol altra configuració viatjaria per
+        UDP sense autenticar i sobreescriuria ajustos de l'instal·lador.
 
         La URL ha de portar el DOMINI, mai la IP: el certificat del servidor
         és un certificat públic real emès per a aquest domini i amb una IP no
         validaria. El token NO viatja per UDP; l'escriu la seqüència
         d'enrolament, que ja circula per HTTPS.
+
+        La cadència s'envia com a paràmetre, no fixa al firmware, perquè ha
+        de coincidir amb la que escriu l'enrolament: totes dues surten de
+        DEVICES_KEEP_ALIVE_TMO.
         """
         payload = json.dumps({
             'type': 'kapri_link',
+            'cloud_interface': True,
             'sRemoteUrl': server_url,
+            'cloud_keep_alive_timeout': keep_alive_tmo,
         }).encode('ascii')
         try:
             sock = self._get_socket()

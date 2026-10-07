@@ -46,8 +46,8 @@ class FakeDiscovery:
     def get_observation(self, eui64):
         return self.obs.get(eui64)
 
-    def send_link(self, ip, url):
-        self.links_sent.append((ip, url))
+    def send_link(self, ip, url, keep_alive_tmo):
+        self.links_sent.append((ip, url, keep_alive_tmo))
         return True, None
 
     def send_discovery(self):
@@ -311,11 +311,11 @@ class EnrollDeleteTestCase(unittest.TestCase):
         db.session.refresh(device)
         self.assertGreater(device.link_kick_dts, before)
 
-    def test_delete_batch_keeps_cloud_interface_on(self):
+    def test_delete_batch_leaves_device_as_factory(self):
         """
-        El lot d'alliberament només ha d'esborrar el token. Si apagués la
-        interfície cloud, el dispositiu no tornaria a trucar en re-vincular-lo,
-        perquè la trama UDP només li configura la URL.
+        El lot d'alliberament ha de deixar el dispositiu com de fàbrica: sense
+        token, sense URL i amb el cloud apagat. Esborrar la URL és
+        imprescindible perquè el discovery el torni a reportar com a verge.
         """
         device = self.enroll_device()
         self.client.post(f'/api/terminals/{device.device_id}/release')
@@ -324,8 +324,20 @@ class EnrollDeleteTestCase(unittest.TestCase):
         cfg = next(i['msgArg'] for i in ins['msgArg']['listBatch']
                    if i['msgArg'].get('msgId') == MsgId.CLEAR_TOKEN)
         self.assertEqual(cfg['cloud_remote_server_token'], '')
-        self.assertTrue(cfg['cloud_interface'])
-        self.assertEqual(cfg['cloud_allowed_events'], MsgType.ON_CLOUD_KEEP_ALIVE)
+        self.assertEqual(cfg['cloud_remote_server_url'], '')
+        self.assertFalse(cfg['cloud_interface'])
+
+    def test_link_frame_enables_cloud(self):
+        """
+        La trama UDP de vinculació ha de deixar el dispositiu en condicions de
+        trucar: cloud actiu, URL i cadència de keep-alive. I res més.
+        """
+        self.discovery.put_virgin(EUI64)
+        self.client.post('/api/terminals/link', json={'eui64': EUI64})
+
+        frame = self.discovery.links_sent[-1]
+        self.assertEqual(frame[1], SERVER_URL)
+        self.assertEqual(frame[2], self.app.config['DEVICES_KEEP_ALIVE_TMO'])
 
     def test_delete_blocked_if_securized_web_cannot_be_restored(self):
         """

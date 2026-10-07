@@ -134,10 +134,9 @@ def _enroll_device_launch(device):
 
 def _delete_device_launch(device):
     """
-    Lot d'alliberament: restaurar la contrasenya del web, escriure la
-    configuració amb el token buit i aplicar-la.
+    Lot d'alliberament: restaurar la contrasenya del web, deixar la
+    configuració de cloud com de fàbrica i aplicar-la.
     """
-    cfg = current_app.config
     batch = [
         {
             'msgType': MsgType.INS_WEB_CREDENTIALS_SET,
@@ -152,15 +151,22 @@ def _delete_device_launch(device):
             'msgType': MsgType.INS_CFG_WRITE,
             'msgArg': {
                 'msgId': MsgId.CLEAR_TOKEN,
-                # NOMÉS s'esborra el token. La interfície cloud ha de quedar
-                # activada, igual que a KapriCloudMainAPI: la trama UDP de
-                # vinculació només configura la URL, de manera que un
-                # dispositiu alliberat amb el cloud apagat no tornaria a
-                # trucar mai en re-vincular-lo.
+                # El dispositiu ha de quedar com de fàbrica: sense token,
+                # sense URL i amb el cloud apagat. És l'operació inversa de la
+                # vinculació, que és qui el torna a activar.
+                #
+                # Esborrar la URL és imprescindible perquè el discovery el
+                # torni a reportar com a verge; si hi quedés escrita, la
+                # pantalla el classificaria com a LINKED o FOREIGN i no
+                # oferiria el botó Vincular.
+                #
+                # Divergeix de KapriCloudMainAPI, que deixa el cloud encès
+                # perquè allà no hi ha cap trama de vinculació que el pugui
+                # tornar a activar.
                 'cloud_remote_server_token': '',
-                'cloud_interface': True,
-                'cloud_allowed_events': MsgType.ON_CLOUD_KEEP_ALIVE,
-                'cloud_keep_alive_timeout': cfg['DEVICES_KEEP_ALIVE_TMO'],
+                'cloud_remote_server_url': '',
+                'cloud_interface': False,
+                'cloud_allowed_events': '',
                 'http_interface': False,
                 'jso_interface': False
             }

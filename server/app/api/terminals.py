@@ -197,7 +197,8 @@ def link_terminal():
     # obsoleta en el mateix moment de vincular-lo.
     _discovery().invalidate(eui64)
 
-    ok, err = _discovery().send_link(obs.ip_address, _server_url())
+    ok, err = _discovery().send_link(obs.ip_address, _server_url(),
+                                     current_app.config['DEVICES_KEEP_ALIVE_TMO'])
     if not ok:
         return jsonify({'error': f'Registre creat, però la vinculació UDP ha fallat: {err}'}), 502
     return jsonify({'device_id': device.device_id, 'eui64': device.eui64})
