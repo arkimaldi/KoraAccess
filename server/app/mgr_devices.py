@@ -129,11 +129,6 @@ class MgrDevices:
             device.image_version = info_arg.get('sImageVersion')
             device.mac_address = info_arg.get('sMAC_Address')
             device.status = DeviceStatus.ENROLLED
-            # Les crides no refresquen l'estat de connexió fins que el
-            # dispositiu és enrolat, així que el primer kick el fa el propi
-            # enrolament: acaba de parlar amb nosaltres.
-            device.link = LinkState.ONLINE
-            device.link_kick_dts = utcnow()
             MgrLogs.add('enrolled', f"model={device.knet_id} fw={device.image_version}",
                         device=device, commit=False)
             db.session.commit()

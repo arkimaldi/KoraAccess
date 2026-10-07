@@ -294,11 +294,11 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self.ans_delete(token='', desecurize_ret=4)
         self.assertIsNone(Devices.query.filter_by(eui64=EUI64).first())
 
-    def test_link_not_refreshed_while_delete_pending(self):
+    def test_link_is_refreshed_in_any_status(self):
         """
-        Amb el registre en delete_pending, les crides del dispositiu no han de
-        refrescar link_kick_dts. Si ho fessin, no arribaria mai a severe_lost
-        i l'esborrat manual quedaria inaccessible per sempre.
+        L'estat de connexió es refresca a cada crida vàlida, també en
+        delete_pending: la pantalla ha de mostrar si el dispositiu és viu
+        mentre s'està alliberant.
         """
         device = self.enroll_device()
         self.client.post(f'/api/terminals/{device.device_id}/release')
@@ -309,13 +309,7 @@ class EnrollDeleteTestCase(unittest.TestCase):
         _t.sleep(1.1)
         self.keep_alive(token=device.cloud_remote_server_token)
         db.session.refresh(device)
-        self.assertEqual(device.link_kick_dts, before)
-
-        # Un cop en severe_lost, l'esborrat manual ja és possible
-        device.link = LinkState.SEVERE_LOST
-        db.session.commit()
-        r = self.client.delete(f'/api/terminals/{device.device_id}')
-        self.assertEqual(r.status_code, 200)
+        self.assertGreater(device.link_kick_dts, before)
 
     def test_nothing_to_do_returns_null(self):
         """

@@ -61,12 +61,10 @@ def cloud_event():
             MgrLogs.add('rejected_bad_token', f'msgType={msg_type}', device=device)
             return _empty_reply()
 
-        # L'estat de connexió només es refresca amb el dispositiu enrolat,
-        # com a KapriCloudMainAPI. Si es refresqués també en delete_pending, un
-        # registre encallat no arribaria mai a severe_lost i la pantalla no
-        # permetria esborrar-lo manualment.
-        if device.status == DeviceStatus.ENROLLED:
-            MgrLink.on_device_call(device)
+        # Tota crida vàlida refresca l'estat de connexió, sigui quin sigui
+        # l'estat del cicle de vida: així la pantalla mostra si el dispositiu
+        # és viu també mentre s'enrola o s'allibera.
+        MgrLink.on_device_call(device)
         if request.remote_addr:
             device.ip_address = request.remote_addr
         db.session.commit()
