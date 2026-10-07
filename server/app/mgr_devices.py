@@ -187,17 +187,21 @@ class MgrDevices:
         # a nosaltres. Si no es descarta, la pantalla el mostraria com a
         # «desconegut que ens apunta» i demanaria un reset físic, fins que
         # caduqués sola.
-        MgrDevices._invalidate_observation(eui64)
+        MgrDevices._on_device_deleted(eui64)
         return True
 
     @staticmethod
-    def _invalidate_observation(eui64):
+    def _on_device_deleted(eui64):
         try:
             discovery = current_app.extensions.get('kora_discovery')
-            if discovery is not None:
-                discovery.invalidate(eui64)
+            if discovery is None:
+                return
+            discovery.invalidate(eui64)
+            # I es programa un scan, perquè el dispositiu alliberat torni a
+            # sortir com a disponible de seguida i no d'aquí a un cicle sencer.
+            discovery.schedule_scan(current_app.config['DISCOVERY_RESCAN_DELAY'])
         except Exception as e:
-            logging.error('invalidate observation exception: %s', e)
+            logging.error('on_device_deleted exception: %s', e)
 
     @staticmethod
     def can_delete_manually(device):

@@ -27,6 +27,8 @@ class FakeDiscovery:
     def __init__(self):
         self.obs = {}
         self.links_sent = []
+        self.scans = 0
+        self.scheduled_scans = []
 
     def put_virgin(self, eui64, ip='10.0.0.144'):
         self.obs[eui64] = DiscoveryObservation(eui64, ip, 'KapriOn_1.5.7', '', time.time())
@@ -66,7 +68,11 @@ class FakeDiscovery:
         return captured
 
     def send_discovery(self):
+        self.scans += 1
         return ['255.255.255.255']
+
+    def schedule_scan(self, delay_s):
+        self.scheduled_scans.append(delay_s)
 
 
 class EnrollDeleteTestCase(unittest.TestCase):
@@ -435,6 +441,11 @@ class EnrollDeleteTestCase(unittest.TestCase):
 
         rows = self.client.get('/api/terminals').get_json()['terminals']
         self.assertEqual(rows, [])
+
+        # I s'ha programat un scan perquè torni a sortir com a disponible
+        # sense esperar el cicle sencer de la pantalla.
+        self.assertEqual(self.discovery.scheduled_scans,
+                         [self.app.config['DISCOVERY_RESCAN_DELAY']])
 
     def test_observation_invalidated_on_manual_delete(self):
         """El mateix per a l'esborrat manual del registre."""

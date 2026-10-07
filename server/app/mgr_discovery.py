@@ -187,6 +187,25 @@ class MgrDiscovery:
         logging.debug('Discovery emès a %s', sent)
         return sent
 
+    def schedule_scan(self, delay_s):
+        """
+        Emet un scan d'aquí a delay_s segons, en un fil a part.
+
+        S'usa després d'esborrar un registre: sense això, el dispositiu
+        alliberat no tornaria a aparèixer com a disponible fins al proper cicle
+        de la pantalla, que és de 30 s.
+        """
+        timer = threading.Timer(delay_s, self._safe_send_discovery)
+        timer.daemon = True
+        timer.start()
+        return timer
+
+    def _safe_send_discovery(self):
+        try:
+            self.send_discovery()
+        except Exception as e:
+            logging.error('Error en l\'scan diferit: %s', e)
+
     def send_link(self, ip_address, server_url, keep_alive_tmo):
         """
         Vinculació: instrucció UDP unicast que deixa el dispositiu en

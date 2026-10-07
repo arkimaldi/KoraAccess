@@ -37,6 +37,11 @@ class BaseConfig:
     DISCOVERY_TOKEN = b'KAPRI_DISCOVERY'
     DISCOVERY_PERIOD = 30          # s; només mentre la pantalla és oberta
     DISCOVERY_RESULT_TTL = 90      # s; antiguitat màxima d'una observació
+    # Retard de l'scan que s'emet just després d'esborrar un registre. Dona
+    # temps al dispositiu a aplicar el segon lot d'alliberament, que és el que
+    # li buida la URL; si s'emetés a l'instant, encara respondria amb la URL
+    # posada i es mostraria com a vinculat.
+    DISCOVERY_RESCAN_DELAY = 3
 
     # --- Keep-alive i estat de connexió (valors de KapriCloudMainAPI) ---
     DEVICES_KEEP_ALIVE_TMO = 10
