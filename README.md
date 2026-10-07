@@ -93,6 +93,12 @@ de connexió (`online` / `lost` / `severe_lost` / `offline`) també.
 Un keep-alive d'un EUI64 que no consta a `Devices` es rebutja sempre: el
 programa només atén dispositius que ell mateix ha vinculat.
 
+## Documentació
+
+- [`docs/pantalla-terminals.md`](docs/pantalla-terminals.md) — com es construeix
+  la pantalla de Terminals, com es combinen les dades dels keep-alives amb les
+  del discovery i per què no s'han de barrejar.
+
 ## Proves
 
 ```bash
