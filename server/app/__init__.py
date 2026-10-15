@@ -14,7 +14,11 @@ from app.extensions import db, migrate
 from app.mgr_discovery import MgrDiscovery
 from app.mgr_link import MgrLink
 
-STATIC_DIR = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), 'static')
+# Carpeta amb el build de l'Angular. Es pot sobreescriure per entorn, cosa que
+# fan servir les proves e2e per servir webapp/dist directament.
+STATIC_DIR = os.environ.get(
+    'KORAACCESS_STATIC_DIR',
+    os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), 'static'))
 
 
 def create_app(config_name='dev', start_background=True):

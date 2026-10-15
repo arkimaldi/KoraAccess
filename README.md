@@ -101,9 +101,20 @@ programa només atén dispositius que ell mateix ha vinculat.
 
 ## Proves
 
+**Servidor**, sense navegador. Ràpides:
+
 ```bash
 cd server && python tests/test_enroll_delete.py
 ```
+
+**De punta a punta**, amb servidor real i navegador. Més lentes, però són les
+úniques que veuen el comportament de la pantalla:
+
+```bash
+python e2e/run_e2e.py --build
+```
+
+Vegeu [`e2e/README.md`](e2e/README.md) per a la posada en marxa.
 
 ## Pendent
 

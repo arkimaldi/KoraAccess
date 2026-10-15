@@ -16,7 +16,7 @@ class BaseConfig:
 
     # --- Servidor ---
     LISTEN_HOST = '0.0.0.0'
-    LISTEN_PORT = 8443
+    LISTEN_PORT = int(os.environ.get('KORAACCESS_PORT', 8443))
     SERVER_THREADS = 8
     # Certificat públic real emès per al domini del servei. El DNS de la
     # instal·lació resol aquest domini cap a la IP privada del servidor.
@@ -33,7 +33,7 @@ class BaseConfig:
                                        'https://kora.exemple.com/v1/Cloud/Event')
 
     # --- Discovery UDP ---
-    DISCOVERY_PORT = 60100
+    DISCOVERY_PORT = int(os.environ.get('KORAACCESS_DISCOVERY_PORT', 60100))
     DISCOVERY_TOKEN = b'KAPRI_DISCOVERY'
     DISCOVERY_PERIOD = 30          # s; només mentre la pantalla és oberta
     DISCOVERY_RESULT_TTL = 90      # s; antiguitat màxima d'una observació
@@ -55,7 +55,7 @@ class BaseConfig:
 
 class DevConfig(BaseConfig):
     DEBUG = True
-    LISTEN_PORT = 8080
+    LISTEN_PORT = int(os.environ.get('KORAACCESS_PORT', 8080))
     TLS_CERT_FILE = ''   # en desenvolupament, HTTP pla
 
     # En desenvolupament s'hi va per IP i HTTP pla: no hi ha certificat a
