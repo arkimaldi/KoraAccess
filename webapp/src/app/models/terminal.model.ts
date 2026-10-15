@@ -35,6 +35,8 @@ export interface Terminal {
   can_assign: boolean;
   can_release: boolean;
   can_delete: boolean;
+  /** Cert si Devices.status és enrolled o enroll_pending. */
+  can_edit_description: boolean;
   can_link?: boolean;
 }
 

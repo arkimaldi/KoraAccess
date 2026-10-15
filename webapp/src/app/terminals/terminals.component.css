@@ -45,3 +45,22 @@
 .btn:disabled { opacity:.55; cursor:default; }
 .btn-primary { border-color:#1d4ed8; color:#1d4ed8; }
 .btn-danger  { border-color:#dc2626; color:#dc2626; }
+
+/* --- edició de la descripció --- */
+/* Amplada fixa: si no, en entrar en edició el camp eixampla la columna i
+   tota la taula es desplaça. */
+.col-desc { width:220px; max-width:220px; }
+.col-desc.editable { cursor:pointer; }
+.col-desc.editable:hover { background:#f5f8ff; }
+.desc-link { color:#1d4ed8; text-decoration:underline; text-underline-offset:2px; }
+.desc-empty { color:#9ca3af; font-style:italic; }
+.desc-input { width:100%; box-sizing:border-box; padding:5px 7px; font-size:14px; border:1px solid #1d4ed8;
+              border-radius:4px; outline:none; box-shadow:0 0 0 2px #dbe5fb; }
+.desc-hint { margin-top:4px; font-size:11px; color:#6b7280; }
+
+/* --- càrrega inicial --- */
+.initial-loading { display:flex; align-items:center; gap:12px; justify-content:center;
+                   padding:48px 8px; color:#6b7280; font-size:14px; }
+.spinner { width:22px; height:22px; border:3px solid #e5e7eb; border-top-color:#1d4ed8;
+           border-radius:50%; animation:kora-spin .8s linear infinite; }
+@keyframes kora-spin { to { transform:rotate(360deg); } }

@@ -18,7 +18,12 @@
 
   <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
 
-  <table class="grid">
+  <div class="initial-loading" *ngIf="initialLoading">
+    <div class="spinner" aria-hidden="true"></div>
+    <span>Cercant terminals a la xarxa…</span>
+  </div>
+
+  <table class="grid" *ngIf="!initialLoading">
     <thead>
       <tr>
         <th>Descripció</th>
@@ -33,7 +38,27 @@
     </thead>
     <tbody>
       <tr *ngFor="let t of terminals; trackBy: trackByEui64">
-        <td>{{ t.description || '—' }}</td>
+        <td class="col-desc"
+            [class.editable]="t.can_edit_description && editingId !== t.device_id"
+            (click)="startEdit(t)">
+          <ng-container *ngIf="editingId === t.device_id; else showDesc">
+            <input class="desc-input" type="text" maxlength="120"
+                   koraAutofocus
+                   [(ngModel)]="editValue"
+                   (keydown)="onEditKey($event)"
+                   (blur)="cancelEdit()"
+                   (click)="$event.stopPropagation()"
+                   placeholder="Descripció del terminal">
+            <div class="desc-hint">Enter per desar · Esc per cancel·lar</div>
+          </ng-container>
+          <ng-template #showDesc>
+            <ng-container *ngIf="t.can_edit_description; else plainDesc">
+              <span class="desc-link" *ngIf="t.description">{{ t.description }}</span>
+              <span class="desc-link desc-empty" *ngIf="!t.description">Afegir descripció</span>
+            </ng-container>
+            <ng-template #plainDesc>{{ t.description || '—' }}</ng-template>
+          </ng-template>
+        </td>
         <td class="mono">{{ t.eui64 }}</td>
         <td>
           <span *ngIf="t.knet_id !== null">{{ t.knet_id }}</span>

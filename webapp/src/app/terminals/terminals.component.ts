@@ -7,6 +7,7 @@ import { Subscription, timer } from 'rxjs';
 
 import { TerminalsService } from '../services/terminals.service';
 import { LicenseInfo, Terminal } from '../models/terminal.model';
+import { AutofocusDirective } from '../shared/autofocus.directive';
 
 /**
  * Ritme normal: el discovery s'emet cada 30 s, només mentre la pantalla és
@@ -25,10 +26,17 @@ const FAST_REFRESH_PERIOD_MS = 5000;
 /** Estats que indiquen que hi ha una operació en curs. */
 const PENDING_STATUS = ['enroll_pending', 'delete_pending'];
 
+/**
+ * Espera entre el primer scan i el primer llistat en entrar a la pantalla.
+ * L'scan no espera respostes: sense aquesta pausa, el primer llistat no veuria
+ * cap dispositiu verge i la pantalla apareixeria buida.
+ */
+const INITIAL_SCAN_WAIT_MS = 2000;
+
 @Component({
   selector: 'kora-terminals',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AutofocusDirective],
   templateUrl: './terminals.component.html',
   styleUrls: ['./terminals.component.css']
 })
@@ -40,6 +48,13 @@ export class TerminalsComponent implements OnInit, OnDestroy {
   loading = false;
   errorMessage = '';
 
+  /** Cert fins que arriba el primer llistat amb dades vàlides. */
+  initialLoading = true;
+
+  /** device_id de la fila que s'està editant, o null. */
+  editingId: string | null = null;
+  editValue = '';
+
   private listTimer?: Subscription;
   private scanTimer?: Subscription;
   private lastScanAt = 0;
@@ -47,8 +62,20 @@ export class TerminalsComponent implements OnInit, OnDestroy {
   constructor(private service: TerminalsService) {}
 
   ngOnInit(): void {
-    this.refresh(true);
-    this.scheduleNext();
+    this.initialLoad();
+  }
+
+  /**
+   * Primera càrrega: scan, pausa perquè els dispositius responguin, i llavors
+   * el primer llistat. Després, el ritme normal.
+   */
+  private initialLoad(): void {
+    this.initialLoading = true;
+    this.lastScanAt = Date.now();
+    const afterScan = () => {
+      this.listTimer = timer(INITIAL_SCAN_WAIT_MS).subscribe(() => this.refresh(false));
+    };
+    this.service.scan().subscribe({ next: afterScan, error: afterScan });
   }
 
   ngOnDestroy(): void {
@@ -71,6 +98,12 @@ export class TerminalsComponent implements OnInit, OnDestroy {
     this.listTimer?.unsubscribe();
     const period = this.hasPendingWork ? FAST_REFRESH_PERIOD_MS : REFRESH_PERIOD_MS;
     this.listTimer = timer(period).subscribe(() => {
+      // Mentre s'edita una descripció no es refresca: el valor de la base de
+      // dades sobreescriuria el que l'usuari està escrivint.
+      if (this.editingId !== null) {
+        this.scheduleNext();
+        return;
+      }
       // El discovery manté el seu ritme encara que el llistat vagi més ràpid.
       const withScan = Date.now() - this.lastScanAt >= REFRESH_PERIOD_MS;
       this.refresh(withScan);
@@ -85,10 +118,12 @@ export class TerminalsComponent implements OnInit, OnDestroy {
         this.license = res.license;
         this.serverUrl = res.server_url;
         this.loading = false;
+        this.initialLoading = false;
         this.scheduleNext();
       },
       error: (err) => {
         this.fail(err);
+        this.initialLoading = false;
         this.scheduleNext();
       }
     });
@@ -98,6 +133,40 @@ export class TerminalsComponent implements OnInit, OnDestroy {
       this.service.scan().subscribe({ next: () => load(), error: () => load() });
     } else {
       load();
+    }
+  }
+
+  // --- edició de la descripció ---------------------------------------
+  startEdit(t: Terminal): void {
+    if (!t.can_edit_description || !t.device_id) { return; }
+    this.editingId = t.device_id;
+    this.editValue = t.description || '';
+  }
+
+  /** Enter: desa. És l'únic camí per desar. */
+  saveEdit(): void {
+    if (this.editingId === null) { return; }
+    const deviceId = this.editingId;
+    const value = this.editValue;
+    // Es tanca l'edició abans de desar: quan el camp desaparegui i perdi el
+    // focus, cancelEdit() ja no hi trobarà res a cancel·lar.
+    this.editingId = null;
+    this.run(this.service.updateDescription(deviceId, value));
+  }
+
+  /** Escape o perdre el focus: cancel·la sense desar. */
+  cancelEdit(): void {
+    this.editingId = null;
+    this.editValue = '';
+  }
+
+  onEditKey(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.saveEdit();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelEdit();
     }
   }
 

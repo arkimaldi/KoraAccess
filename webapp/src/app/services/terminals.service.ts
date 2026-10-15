@@ -23,6 +23,11 @@ export class TerminalsService {
     return this.http.post('/api/terminals/link', { eui64, description });
   }
 
+  /** Canvia la descripció. Pot quedar buida. */
+  updateDescription(deviceId: string, description: string): Observable<unknown> {
+    return this.http.put(`/api/terminals/${deviceId}/description`, { description });
+  }
+
   assign(deviceId: string, portalName: string): Observable<unknown> {
     return this.http.post(`/api/terminals/${deviceId}/assign`, { portal_name: portalName });
   }
