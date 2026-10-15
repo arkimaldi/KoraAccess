@@ -1,0 +1,20 @@
+<div class="auth-card">
+  <h2>{{ 'Sign in' | translate }}</h2>
+
+  <div class="auth-info" *ngIf="auth.sessionExpired() && !error">{{ messages.text(expiredMessage) }}</div>
+  <div class="auth-error" *ngIf="error">{{ messages.text(error) }}</div>
+
+  <form (ngSubmit)="submit()" autocomplete="on">
+    <label for="login-username">{{ 'Username' | translate }}</label>
+    <input id="login-username" name="username" type="text" autocomplete="username"
+           koraAutofocus [(ngModel)]="username" [disabled]="busy">
+
+    <label for="login-password">{{ 'Password' | translate }}</label>
+    <input id="login-password" name="password" type="password" autocomplete="current-password"
+           [(ngModel)]="password" [disabled]="busy">
+
+    <button class="btn btn-primary btn-block" type="submit" [disabled]="busy || !username || !password">
+      {{ 'Sign in' | translate }}
+    </button>
+  </form>
+</div>

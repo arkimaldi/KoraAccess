@@ -43,6 +43,10 @@ SERVER_URL = 'http://10.0.0.144:8080/v1/Cloud/Event'
 
 SERVER_START_TIMEOUT_S = 30
 
+# Usuari amb què les proves inicien sessió si no en declaren cap altre.
+TEST_USER = {'username': 'e2e', 'password': 'contrasenya-e2e', 'role': 'admin', 'full_name': 'Proves E2E'}
+CSRF_HEADERS = {'X-Requested-With': 'KoraAccess'}
+
 
 def check_build():
     if not os.path.isfile(os.path.join(WEBAPP_DIST, 'index.html')):
@@ -65,12 +69,15 @@ class ServerUnderTest:
             'KORAACCESS_DISCOVERY_PORT': str(DISCOVERY_PORT),
             'KORAACCESS_STATIC_DIR': WEBAPP_DIST,
             'KORAACCESS_PUBLIC_URL': SERVER_URL,
+            # Cada prova inicia sessió: amb el límit real de 5 per minut, la
+            # suite es bloquejaria a si mateixa.
+            'KORAACCESS_LOGIN_RATE_LIMIT': '1000 per minute',
         })
 
-    def seed(self, devices):
-        """Sembra dispositius. S'ha de cridar abans de start()."""
+    def seed(self, devices, users=()):
+        """Sembra dispositius i usuaris. S'ha de cridar abans de start()."""
         result = subprocess.run(
-            [sys.executable, SEED_SCRIPT, json.dumps(devices)],
+            [sys.executable, SEED_SCRIPT, json.dumps({'devices': list(devices), 'users': list(users)})],
             cwd=SERVER_DIR, env=self.env, capture_output=True, text=True)
         if result.returncode != 0:
             raise RuntimeError('Error sembrant les dades:\n' + result.stderr[-2000:])
@@ -85,7 +92,7 @@ class ServerUnderTest:
             if self.process.poll() is not None:
                 raise RuntimeError('El servidor s\'ha aturat en arrencar. Log:\n' + self.read_log())
             try:
-                urllib.request.urlopen(BASE_URL + '/api/terminals', timeout=1)
+                urllib.request.urlopen(BASE_URL + '/', timeout=1)
                 return
             except (urllib.error.URLError, ConnectionError, OSError):
                 time.sleep(0.3)
@@ -142,6 +149,9 @@ class E2ETestCase(unittest.TestCase):
 
     SEED = []
     OBSERVATIONS = []        # [(eui64, remote_url), ...]
+    USERS = [TEST_USER]
+    # Si és cert, cada prova comença amb la sessió de TEST_USER ja iniciada.
+    LOGIN = True
     VIEWPORT = {'width': 1300, 'height': 700}
     # Idioma del navegador. La interfície el fa servir si no se n'ha triat cap
     # amb el selector. Cada prova obre un context nou, sense idioma desat.
@@ -152,7 +162,7 @@ class E2ETestCase(unittest.TestCase):
         check_build()
         from playwright.sync_api import sync_playwright
         cls.server = ServerUnderTest()
-        cls.server.seed(cls.SEED)
+        cls.server.seed(cls.SEED, cls.USERS)
         cls.server.start()
         cls.inject_observations()
         cls._pw = sync_playwright().start()
@@ -174,6 +184,8 @@ class E2ETestCase(unittest.TestCase):
 
     def setUp(self):
         self.page = self.browser.new_page(viewport=self.VIEWPORT, locale=self.LOCALE)
+        if self.LOGIN:
+            self.login_via_api(TEST_USER['username'], TEST_USER['password'])
 
     def tearDown(self):
         # En cas d'error, desa una captura per poder veure què hi havia.
@@ -188,6 +200,15 @@ class E2ETestCase(unittest.TestCase):
         self.page.close()
 
     # --- utilitats -----------------------------------------------------
+    def login_via_api(self, username, password):
+        """
+        Inicia sessió sense passar per la pantalla. page.request comparteix les
+        cookies amb el navegador, de manera que la pàgina ja hi entra amb sessió.
+        """
+        r = self.page.request.post(BASE_URL + '/api/auth/login', headers=CSRF_HEADERS,
+                                   data={'username': username, 'password': password})
+        assert r.ok, f'Login de proves fallit: {r.status} {r.text()}'
+
     def open_terminals(self):
         """Obre la pantalla i espera que acabi la càrrega inicial."""
         self.page.goto(BASE_URL + '/')

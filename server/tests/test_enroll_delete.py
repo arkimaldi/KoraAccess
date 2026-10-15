@@ -11,6 +11,7 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app import create_app
+from auth_helpers import logged_in_client
 from app.extensions import db
 from app.db_models import Devices
 from app.global_consts import DeviceStatus, LinkState, MsgType, MsgId
@@ -89,7 +90,7 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self.ctx.push()
         db.drop_all()
         db.create_all()
-        self.client = self.app.test_client()
+        self.client = logged_in_client(self.app)
 
     def tearDown(self):
         db.session.remove()

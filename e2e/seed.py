@@ -6,8 +6,10 @@ S'executa com a subprocés, i no importat, perquè config.py llegeix
 KORAACCESS_DATA_DIR en el moment d'importar-se: si el procés de proves ja
 l'hagués importat, apuntaria a la base de dades equivocada.
 
-Ús: python seed.py '<json amb la llista de dispositius>'
+Ús: python seed.py '{"devices": [...], "users": [...]}'
 Cada dispositiu: {"eui64": ..., "description": ..., "status": ...}
+Cada usuari: {"username": ..., "password": ..., "role": ..., "full_name": ...,
+              "language": ..., "must_change_password": ...}
 """
 
 import json
@@ -20,15 +22,24 @@ os.chdir(SERVER_DIR)
 
 from app import create_app                       # noqa: E402
 from app.extensions import db                    # noqa: E402
+from app import mgr_auth                         # noqa: E402
 from app.mgr_devices import MgrDevices           # noqa: E402
 from app.global_consts import DeviceStatus, LinkState   # noqa: E402
 from app.db_models import utcnow                 # noqa: E402
 
 
 def main():
-    devices = json.loads(sys.argv[1]) if len(sys.argv) > 1 else []
+    scenario = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+    devices = scenario.get('devices', [])
+    users = scenario.get('users', [])
     app = create_app('dev', start_background=False)
     with app.app_context():
+        for u in users:
+            user = mgr_auth.create_user(u['username'], u['password'], u.get('role', 'admin'),
+                                        full_name=u.get('full_name', ''),
+                                        must_change_password=u.get('must_change_password', False))
+            user.language = u.get('language')
+        db.session.commit()
         for d in devices:
             device, err = MgrDevices.create_pending(d['eui64'], d.get('description', ''))
             if device is None:

@@ -4,6 +4,8 @@
 import uuid
 from datetime import datetime, timezone
 
+from flask_login import UserMixin
+
 from app.extensions import db
 from app.global_consts import DeviceStatus, LinkState
 
@@ -94,3 +96,65 @@ class DeviceLogs(db.Model):
     event = db.Column(db.String(60), nullable=False)
     detail = db.Column(db.Text, nullable=False, default='')
     datetimestamp = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+
+
+class Users(UserMixin, db.Model):
+    """
+    Usuaris de la webapp. Login per nom d'usuari, sense correu: a on-premises no
+    hi ha servidor de correu garantit.
+    """
+    __tablename__ = 'users'
+
+    user_id = db.Column(db.String(36), primary_key=True, default=_uuid4)
+
+    # Es desa en minúscules: el login no distingeix majúscules.
+    username = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    full_name = db.Column(db.String(120), nullable=False, default='')
+
+    # 'admin' pot gestionar usuaris; 'operator' fa tota la resta.
+    role = db.Column(db.String(20), nullable=False)
+
+    # Idioma preferit de la interfície. Null: no n'ha triat cap.
+    language = db.Column(db.String(5), nullable=True)
+
+    # Hash argon2id. Mai la contrasenya.
+    password_hash = db.Column(db.String(255), nullable=False)
+
+    # Obliga a canviar la contrasenya al proper login. S'activa quan algú altre
+    # l'ha restablerta (per exemple, amb l'ordre reset-password).
+    must_change_password = db.Column(db.Boolean, nullable=False, default=False)
+
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    created_dts = db.Column(db.DateTime, nullable=False, default=utcnow)
+    password_changed_dts = db.Column(db.DateTime, nullable=False, default=utcnow)
+    last_login_dts = db.Column(db.DateTime, nullable=True)
+
+    sessions = db.relationship('UserSessions', backref='user',
+                               cascade='all, delete-orphan', passive_deletes=True)
+
+    def get_id(self):
+        return self.user_id
+
+
+class UserSessions(db.Model):
+    """
+    Sessions obertes. El navegador porta un identificador aleatori en una cookie
+    HttpOnly; aquí només se'n desa el hash SHA-256, de manera que una còpia de la
+    base de dades no permet entrar amb cap sessió.
+    """
+    __tablename__ = 'user_sessions'
+
+    session_id = db.Column(db.String(36), primary_key=True, default=_uuid4)
+    token_hash = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.user_id', ondelete='CASCADE'),
+                        nullable=False, index=True)
+
+    created_dts = db.Column(db.DateTime, nullable=False, default=utcnow)
+    # Darrera activitat: per a la caducitat per inactivitat.
+    last_seen_dts = db.Column(db.DateTime, nullable=False, default=utcnow)
+    # Caducitat absoluta, fixada en crear la sessió.
+    expires_dts = db.Column(db.DateTime, nullable=False)
+
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)

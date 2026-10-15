@@ -33,6 +33,7 @@ cd server
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -r requirements.txt
+python manage.py users create-admin   # un cop: el primer usuari
 python run.py                    # http://localhost:8080
 ```
 
@@ -95,6 +96,8 @@ programa només atén dispositius que ell mateix ha vinculat.
 
 ## Documentació
 
+- [`docs/autenticacio.md`](docs/autenticacio.md) — usuaris, sessions i per què
+  cada decisió de seguretat. Inclou les ordres de gestió d'usuaris.
 - [`docs/pantalla-terminals.md`](docs/pantalla-terminals.md) — com es construeix
   la pantalla de Terminals, com es combinen les dades dels keep-alives amb les
   del discovery i per què no s'han de barrejar.

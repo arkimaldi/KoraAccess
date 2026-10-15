@@ -48,6 +48,24 @@ class BaseConfig:
     DEVICES_LOST_TMO = 150
     DEVICES_SEVERE_LOST_TMO = 300
 
+    # --- Autenticació ---
+    AUTH_COOKIE_NAME = 'koraaccess_session'
+    # Secure: el navegador només envia la cookie per HTTPS. En desenvolupament,
+    # que va en HTTP pla, s'ha de desactivar o no s'enviaria mai.
+    AUTH_COOKIE_SECURE = True
+    # Sessions semi-permanents: caduquen per inactivitat i, en tot cas, passat un
+    # temps màxim des del login.
+    AUTH_IDLE_TIMEOUT_S = int(os.environ.get('KORAACCESS_AUTH_IDLE_TIMEOUT_S', 8 * 3600))
+    AUTH_ABSOLUTE_TIMEOUT_S = int(os.environ.get('KORAACCESS_AUTH_ABSOLUTE_TIMEOUT_S', 30 * 24 * 3600))
+    # La darrera activitat no s'escriu a cada petició, sinó com a molt amb
+    # aquesta freqüència: la pantalla fa polling cada pocs segons.
+    AUTH_LAST_SEEN_UPDATE_S = 60
+    # Límit d'intents de login per IP. Sense bloqueig de comptes: permetria
+    # bloquejar el compte d'un altre a propòsit.
+    AUTH_LOGIN_RATE_LIMIT = os.environ.get('KORAACCESS_LOGIN_RATE_LIMIT', '5 per minute')
+    PASSWORD_MIN_LENGTH = 10
+    PASSWORD_MAX_LENGTH = 128
+
     # --- Llicència ---
     # Provisional: fins que s'integri el mòdul compartit amb KoraPresence.
     LICENSE_MAX_ASSIGNED_DEVICES = 20
@@ -57,6 +75,7 @@ class DevConfig(BaseConfig):
     DEBUG = True
     LISTEN_PORT = int(os.environ.get('KORAACCESS_PORT', 8080))
     TLS_CERT_FILE = ''   # en desenvolupament, HTTP pla
+    AUTH_COOKIE_SECURE = False
 
     # En desenvolupament s'hi va per IP i HTTP pla: no hi ha certificat a
     # validar ni DNS que resolgui el domini. Ha de coincidir exactament amb el

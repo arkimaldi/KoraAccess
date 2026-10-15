@@ -10,7 +10,7 @@ from flask import Flask, send_from_directory
 from flask_migrate import upgrade
 
 from config import CONFIG_BY_NAME
-from app.extensions import db, migrate
+from app.extensions import db, limiter, login_manager, migrate
 from app.mgr_discovery import MgrDiscovery
 from app.mgr_link import MgrLink
 
@@ -27,12 +27,19 @@ def create_app(config_name='dev', start_background=True):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    limiter.init_app(app)
+    _init_auth(app)
 
+    from app.api.auth import auth_bp
     from app.api.cloud_event import cloud_event_bp
     from app.api.terminals import terminals_bp
+    app.register_blueprint(auth_bp)
     app.register_blueprint(cloud_event_bp)
     app.register_blueprint(terminals_bp)
     _register_error_handlers(app)
+
+    from app.cli import users_cli
+    app.cli.add_command(users_cli)
 
     discovery = MgrDiscovery(
         port=app.config['DISCOVERY_PORT'],
@@ -84,6 +91,86 @@ def _upgrade_database(app):
         raise
 
 
+# Endpoints de /api/ accessibles sense sessió. Tota la resta en requereix: un
+# endpoint nou queda protegit per defecte, encara que algú s'oblidi de marcar-lo.
+PUBLIC_API_ENDPOINTS = {
+    ('POST', '/api/auth/login'),
+    ('POST', '/api/auth/logout'),
+}
+
+# Mentre l'usuari ha de canviar la contrasenya, només pot fer això.
+PASSWORD_CHANGE_ENDPOINTS = {
+    ('GET', '/api/auth/me'),
+    ('PUT', '/api/auth/password'),
+    ('POST', '/api/auth/logout'),
+}
+
+# Capçalera que el frontend afegeix a totes les peticions. Un formulari d'una
+# altra web no la pot posar sense permís CORS, que el servidor no dona: és una
+# segona defensa contra CSRF, a més de la cookie SameSite=Strict.
+CSRF_HEADER = 'X-Requested-With'
+CSRF_HEADER_VALUE = 'KoraAccess'
+SAFE_METHODS = {'GET', 'HEAD', 'OPTIONS'}
+
+
+def _init_auth(app):
+    """
+    Autenticació amb Flask-Login. La sessió no viu a la cookie de Flask sinó a la
+    taula user_sessions: request_loader la carrega a cada petició a partir de la
+    cookie pròpia.
+    """
+    from flask import g, request
+    from flask_login import current_user
+    from app import mgr_auth
+    from app.messages import AppError, Msg
+
+    login_manager.init_app(app)
+    # No fem servir la sessió de Flask: la protecció de Flask-Login sobre ella
+    # no aplica.
+    login_manager.session_protection = None
+
+    @login_manager.request_loader
+    def _load_user_from_request(req):
+        token = req.cookies.get(app.config['AUTH_COOKIE_NAME'])
+        session = mgr_auth.load_session(token)
+        g.kora_session = session
+        return session.user if session is not None else None
+
+    @app.before_request
+    def _guard_api():
+        # L'usuari es carrega de nou a cada petició. Flask-Login el desa a g, i g
+        # pertany al context d'aplicació, que es pot reutilitzar entre peticions
+        # si ja n'hi havia un d'obert (ho fan les proves). Sense això, una
+        # petició podria heretar l'usuari, o l'anonimat, de l'anterior.
+        g.pop('_login_user', None)
+        g.pop('kora_session', None)
+
+        if not request.path.startswith('/api/'):
+            return None   # la SPA i el protocol dels terminals no hi entren
+        if request.method not in SAFE_METHODS and \
+                request.headers.get(CSRF_HEADER) != CSRF_HEADER_VALUE:
+            raise AppError(Msg.REQUEST_HEADER_MISSING, 403)
+
+        key = (request.method, request.path)
+        if key in PUBLIC_API_ENDPOINTS:
+            current_user._get_current_object()   # carrega la sessió, si n'hi ha
+            return None
+        if not current_user.is_authenticated:
+            raise AppError(Msg.AUTH_REQUIRED, 401)
+        if current_user.must_change_password and key not in PASSWORD_CHANGE_ENDPOINTS:
+            raise AppError(Msg.PASSWORD_CHANGE_REQUIRED, 403)
+        return None
+
+    @app.after_request
+    def _clear_stale_cookie(response):
+        """Si el navegador porta una cookie que ja no val, se li esborra."""
+        if request.path.startswith('/api/') and response.status_code == 401 \
+                and request.cookies.get(app.config['AUTH_COOKIE_NAME']):
+            from app.api.auth import clear_session_cookie
+            clear_session_cookie(response)
+        return response
+
+
 def _register_error_handlers(app):
     """
     Tota resposta d'error de /api/ té la forma comuna de messages.py, també la
@@ -97,6 +184,12 @@ def _register_error_handlers(app):
     @app.errorhandler(AppError)
     def _app_error(e):
         return e.response()
+
+    @app.errorhandler(429)
+    def _rate_limited(e):
+        if request.path.startswith('/api/'):
+            return AppError(Msg.LOGIN_RATE_LIMITED, 429).response()
+        return e
 
     @app.errorhandler(Exception)
     def _unexpected(e):
@@ -119,3 +212,12 @@ def _start_background_tasks(app, discovery):
                 MgrLink.refresh_all()
 
     threading.Thread(target=link_refresher, name='KoraLinkRefresh', daemon=True).start()
+
+    def session_purger():
+        from app import mgr_auth
+        while True:
+            time.sleep(3600)
+            with app.app_context():
+                mgr_auth.purge_expired_sessions()
+
+    threading.Thread(target=session_purger, name='KoraSessionPurge', daemon=True).start()

@@ -24,10 +24,30 @@
         "en.json": "Assigned",
         "es.json": "Asignados"
     },
+    "Cancel": {
+        "ca.json": "Cancel·la",
+        "en.json": "Cancel",
+        "es.json": "Cancelar"
+    },
+    "Change password": {
+        "ca.json": "Canvia la contrasenya",
+        "en.json": "Change password",
+        "es.json": "Cambiar contraseña"
+    },
+    "Confirm new password": {
+        "ca.json": "Confirma la contrasenya nova",
+        "en.json": "Confirm new password",
+        "es.json": "Confirma la contraseña nueva"
+    },
     "Connection": {
         "ca.json": "Connexió",
         "en.json": "Connection",
         "es.json": "Conexión"
+    },
+    "Current password": {
+        "ca.json": "Contrasenya actual",
+        "en.json": "Current password",
+        "es.json": "Contraseña actual"
     },
     "Delete record": {
         "ca.json": "Esborrar registre",
@@ -54,10 +74,20 @@
         "en.json": "Link",
         "es.json": "Vincular"
     },
+    "Log out": {
+        "ca.json": "Tanca la sessió",
+        "en.json": "Log out",
+        "es.json": "Cerrar sesión"
+    },
     "MSG_ASSIGN_NOT_ENROLLED": {
         "ca.json": "Només es pot assignar un dispositiu enrolat.",
         "en.json": "Only an enrolled device can be assigned.",
         "es.json": "Solo se puede asignar un dispositivo enrolado."
+    },
+    "MSG_AUTH_REQUIRED": {
+        "ca.json": "La sessió ha caducat. Torneu a iniciar-la.",
+        "en.json": "Your session has expired. Please log in again.",
+        "es.json": "La sesión ha caducado. Vuelva a iniciarla."
     },
     "MSG_DELETE_ENROLLED_DEVICE": {
         "ca.json": "Un dispositiu enrolat s'ha d'alliberar, no esborrar.",
@@ -114,6 +144,11 @@
         "en.json": "Internal server error.",
         "es.json": "Error interno del servidor."
     },
+    "MSG_LANGUAGE_UNSUPPORTED": {
+        "ca.json": "Idioma no suportat.",
+        "en.json": "Unsupported language.",
+        "es.json": "Idioma no soportado."
+    },
     "MSG_LICENSE_LIMIT_REACHED": {
         "ca.json": "Límit de llicència assolit ({{assigned}}/{{limit}}).",
         "en.json": "License limit reached ({{assigned}}/{{limit}}).",
@@ -124,6 +159,41 @@
         "en.json": "The record was created, but the link request could not be sent to the device.",
         "es.json": "Se ha creado el registro, pero no se ha podido enviar la vinculación al dispositivo."
     },
+    "MSG_LOGIN_INVALID": {
+        "ca.json": "Nom d'usuari o contrasenya incorrectes.",
+        "en.json": "Incorrect username or password.",
+        "es.json": "Nombre de usuario o contraseña incorrectos."
+    },
+    "MSG_LOGIN_RATE_LIMITED": {
+        "ca.json": "Massa intents d'inici de sessió. Espereu un minut i torneu-ho a provar.",
+        "en.json": "Too many login attempts. Please wait a minute and try again.",
+        "es.json": "Demasiados intentos de inicio de sesión. Espere un minuto y vuelva a intentarlo."
+    },
+    "MSG_PASSWORD_CHANGE_REQUIRED": {
+        "ca.json": "Heu de canviar la contrasenya abans de continuar.",
+        "en.json": "You must change your password before continuing.",
+        "es.json": "Debe cambiar la contraseña antes de continuar."
+    },
+    "MSG_PASSWORD_CURRENT_INVALID": {
+        "ca.json": "La contrasenya actual no és correcta.",
+        "en.json": "The current password is incorrect.",
+        "es.json": "La contraseña actual no es correcta."
+    },
+    "MSG_PASSWORD_SAME_AS_CURRENT": {
+        "ca.json": "La contrasenya nova ha de ser diferent de l'actual.",
+        "en.json": "The new password must be different from the current one.",
+        "es.json": "La contraseña nueva debe ser distinta de la actual."
+    },
+    "MSG_PASSWORD_TOO_LONG": {
+        "ca.json": "La contrasenya no pot superar {{max}} caràcters.",
+        "en.json": "The password cannot exceed {{max}} characters.",
+        "es.json": "La contraseña no puede superar {{max}} caracteres."
+    },
+    "MSG_PASSWORD_TOO_SHORT": {
+        "ca.json": "La contrasenya ha de tenir com a mínim {{min}} caràcters.",
+        "en.json": "The password must have at least {{min}} characters.",
+        "es.json": "La contraseña debe tener como mínimo {{min}} caracteres."
+    },
     "MSG_RELEASE_DEVICE_ASSIGNED": {
         "ca.json": "Cal substituir primer el terminal de la porta.",
         "en.json": "The terminal must first be replaced on its door.",
@@ -133,6 +203,11 @@
         "ca.json": "Només es pot alliberar un dispositiu enrolat.",
         "en.json": "Only an enrolled device can be released.",
         "es.json": "Solo se puede liberar un dispositivo enrolado."
+    },
+    "MSG_REQUEST_HEADER_MISSING": {
+        "ca.json": "S'ha rebutjat la petició perquè hi falta una capçalera obligatòria.",
+        "en.json": "The request was rejected because a required header is missing.",
+        "es.json": "Se ha rechazado la petición porque falta una cabecera obligatoria."
     },
     "MSG_WARN_CANNOT_REACH_SERVER": {
         "ca.json": "El dispositiu apunta a aquest servidor però no hi arriba: comproveu que resol el domini pel DNS de la instal·lació.",
@@ -159,10 +234,20 @@
         "en.json": "Model / FW",
         "es.json": "Modelo / FW"
     },
+    "New password": {
+        "ca.json": "Contrasenya nova",
+        "en.json": "New password",
+        "es.json": "Contraseña nueva"
+    },
     "No terminals found. Check that the devices are on the same network and scan again.": {
         "ca.json": "No s'ha trobat cap terminal. Comproveu que els dispositius són a la mateixa xarxa i torneu a explorar.",
         "en.json": "No terminals found. Check that the devices are on the same network and scan again.",
         "es.json": "No se ha encontrado ningún terminal. Compruebe que los dispositivos están en la misma red y vuelva a explorar."
+    },
+    "Password": {
+        "ca.json": "Contrasenya",
+        "en.json": "Password",
+        "es.json": "Contraseña"
     },
     "Release": {
         "ca.json": "Alliberar",
@@ -183,6 +268,11 @@
         "ca.json": "Cercant terminals a la xarxa…",
         "en.json": "Searching for terminals on the network…",
         "es.json": "Buscando terminales en la red…"
+    },
+    "Sign in": {
+        "ca.json": "Inicia la sessió",
+        "en.json": "Sign in",
+        "es.json": "Iniciar sesión"
     },
     "Status": {
         "ca.json": "Estat",
@@ -208,6 +298,11 @@
         "ca.json": "Desassignar",
         "en.json": "Unassign",
         "es.json": "Desasignar"
+    },
+    "Username": {
+        "ca.json": "Nom d'usuari",
+        "en.json": "Username",
+        "es.json": "Nombre de usuario"
     },
     "_sys_confirmDeleteRecord": {
         "ca.json": "Esborrar el registre de {{eui64}}?",
@@ -243,6 +338,16 @@
         "ca.json": "No es pot contactar amb el servidor.",
         "en.json": "Cannot reach the server.",
         "es.json": "No se puede contactar con el servidor."
+    },
+    "_sys_passwordMinLength": {
+        "ca.json": "Com a mínim {{min}} caràcters.",
+        "en.json": "At least {{min}} characters.",
+        "es.json": "Como mínimo {{min}} caracteres."
+    },
+    "_sys_passwordsDoNotMatch": {
+        "ca.json": "Les contrasenyes no coincideixen.",
+        "en.json": "The passwords do not match.",
+        "es.json": "Las contraseñas no coinciden."
     },
     "_sys_promptDoorName": {
         "ca.json": "Nom de la porta:",

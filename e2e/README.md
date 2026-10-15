@@ -79,6 +79,14 @@ class ElMeuTest(E2ETestCase):
         self.assertEqual(self.desc_cell('00000000000000E1').inner_text().strip(), 'Porta')
 ```
 
+Per defecte, cada prova comença amb la sessió de `TEST_USER` ja iniciada (es fa
+per API, sense passar per la pantalla). Per provar la pantalla de login, poseu
+`LOGIN = False` a la classe. Podeu afegir usuaris amb `USERS`, i iniciar sessió
+amb un d'ells amb `self.login_via_api(usuari, contrasenya)`.
+
+El servidor de proves té el límit d'intents de login apujat: amb el real, de 5
+per minut, la suite es bloquejaria a si mateixa.
+
 Dues regles que ja ens han fet perdre temps:
 
 1. **Busqueu les files per EUI64, mai per posició** (`self.row(eui64)`). L'ordre

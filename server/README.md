@@ -64,6 +64,22 @@ renombraments i els proposa com a esborrar més crear, cosa que perdria dades.
 SQLite no admet `ALTER COLUMN` ni `DROP COLUMN`. Flask-Migrate ho resol amb
 `render_as_batch`, actiu per defecte, que recrea la taula.
 
+## Usuaris
+
+Cal crear el primer administrador abans d'entrar per primera vegada:
+
+```bash
+python manage.py users create-admin
+```
+
+En aquesta iteració, la resta d'usuaris també es gestiona amb ordres
+(`python manage.py users --help`). El disseny de l'autenticació i les sessions,
+i el motiu de cada decisió, són a `docs/autenticacio.md`.
+
+Totes les rutes de `/api/` requereixen sessió tret de les declarades a
+`PUBLIC_API_ENDPOINTS`. Les peticions que modifiquen dades han de portar la
+capçalera `X-Requested-With: KoraAccess`.
+
 ## Missatges i codis d'error
 
 El servidor **no tradueix**. Tots els errors de `/api/` i els avisos de la

@@ -53,6 +53,18 @@ class Msg:
     DEVICE_NOT_ASSIGNED = 'MSG_DEVICE_NOT_ASSIGNED'
     LICENSE_LIMIT_REACHED = 'MSG_LICENSE_LIMIT_REACHED'
 
+    # -- autenticació
+    AUTH_REQUIRED = 'MSG_AUTH_REQUIRED'
+    LOGIN_INVALID = 'MSG_LOGIN_INVALID'
+    LOGIN_RATE_LIMITED = 'MSG_LOGIN_RATE_LIMITED'
+    REQUEST_HEADER_MISSING = 'MSG_REQUEST_HEADER_MISSING'
+    PASSWORD_CHANGE_REQUIRED = 'MSG_PASSWORD_CHANGE_REQUIRED'
+    PASSWORD_CURRENT_INVALID = 'MSG_PASSWORD_CURRENT_INVALID'
+    PASSWORD_TOO_SHORT = 'MSG_PASSWORD_TOO_SHORT'
+    PASSWORD_TOO_LONG = 'MSG_PASSWORD_TOO_LONG'
+    PASSWORD_SAME_AS_CURRENT = 'MSG_PASSWORD_SAME_AS_CURRENT'
+    LANGUAGE_UNSUPPORTED = 'MSG_LANGUAGE_UNSUPPORTED'
+
     # -- avisos de la pantalla de Terminals
     WARN_RESET_EXTERNALLY = 'MSG_WARN_RESET_EXTERNALLY'
     WARN_POINTS_ELSEWHERE = 'MSG_WARN_POINTS_ELSEWHERE'
@@ -82,6 +94,17 @@ MESSAGES = {
     Msg.DEVICE_ALREADY_ASSIGNED: 'The device is already assigned to a door.',
     Msg.DEVICE_NOT_ASSIGNED: 'The device is not assigned.',
     Msg.LICENSE_LIMIT_REACHED: 'License limit reached ({assigned}/{limit}).',
+
+    Msg.AUTH_REQUIRED: 'Your session has expired. Please log in again.',
+    Msg.LOGIN_INVALID: 'Incorrect username or password.',
+    Msg.LOGIN_RATE_LIMITED: 'Too many login attempts. Please wait a minute and try again.',
+    Msg.REQUEST_HEADER_MISSING: 'The request was rejected because a required header is missing.',
+    Msg.PASSWORD_CHANGE_REQUIRED: 'You must change your password before continuing.',
+    Msg.PASSWORD_CURRENT_INVALID: 'The current password is incorrect.',
+    Msg.PASSWORD_TOO_SHORT: 'The password must have at least {min} characters.',
+    Msg.PASSWORD_TOO_LONG: 'The password cannot exceed {max} characters.',
+    Msg.PASSWORD_SAME_AS_CURRENT: 'The new password must be different from the current one.',
+    Msg.LANGUAGE_UNSUPPORTED: 'Unsupported language.',
 
     Msg.WARN_RESET_EXTERNALLY: 'The device has been reset externally: its record must be deleted.',
     Msg.WARN_POINTS_ELSEWHERE: 'The device now points to another server: a physical reset is required.',

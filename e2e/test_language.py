@@ -6,11 +6,9 @@ La traducció la fa tota el frontend: tant els textos de la pantalla com els
 missatges que envia el servidor, que arriben com a claus.
 """
 
-import json
 import unittest
-import urllib.request
 
-from harness import BASE_URL, E2ETestCase
+from harness import BASE_URL, CSRF_HEADERS, E2ETestCase
 
 FOREIGN_URL = 'https://altre.exemple.com/v1/Cloud/Event'
 
@@ -88,11 +86,10 @@ class ServerMessagesTranslationTest(E2ETestCase):
         des de la pantalla: el servidor respon 404 amb MSG_DEVICE_UNKNOWN.
         """
         self.open_terminals()
-        device_id = next(t['device_id'] for t in
-                         json.loads(urllib.request.urlopen(BASE_URL + '/api/terminals').read())['terminals']
-                         if t['eui64'] == '00000000000000E4')
-        urllib.request.urlopen(urllib.request.Request(
-            f'{BASE_URL}/api/terminals/{device_id}', method='DELETE'))
+        # page.request comparteix la sessió del navegador
+        terminals = self.page.request.get(BASE_URL + '/api/terminals').json()['terminals']
+        device_id = next(t['device_id'] for t in terminals if t['eui64'] == '00000000000000E4')
+        self.page.request.delete(f'{BASE_URL}/api/terminals/{device_id}', headers=CSRF_HEADERS)
 
         dialogs = []
         self.page.once('dialog', lambda d: (dialogs.append(d.message), d.accept()))
