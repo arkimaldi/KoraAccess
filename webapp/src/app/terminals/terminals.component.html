@@ -39,9 +39,9 @@
     <tbody>
       <tr *ngFor="let t of terminals; trackBy: trackByEui64">
         <td class="col-desc"
-            [class.editable]="t.can_edit_description && editingId !== t.device_id"
+            [class.editable]="t.can_edit_description && !isEditing(t)"
             (click)="startEdit(t)">
-          <ng-container *ngIf="editingId === t.device_id; else showDesc">
+          <ng-container *ngIf="isEditing(t); else showDesc">
             <input class="desc-input" type="text" maxlength="120"
                    koraAutofocus
                    [(ngModel)]="editValue"

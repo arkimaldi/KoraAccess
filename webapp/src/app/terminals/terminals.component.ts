@@ -137,6 +137,18 @@ export class TerminalsComponent implements OnInit, OnDestroy {
   }
 
   // --- edició de la descripció ---------------------------------------
+  /**
+   * Cert només per a la fila que s'està editant.
+   *
+   * No es pot comparar directament editingId === t.device_id: fora d'edició
+   * editingId val null, i les files sense registre (FREE, FOREIGN) també tenen
+   * device_id a null. La comparació seria certa per a totes elles i entrarien
+   * en edició alhora, compartint el mateix camp.
+   */
+  isEditing(t: Terminal): boolean {
+    return this.editingId !== null && t.device_id !== null && this.editingId === t.device_id;
+  }
+
   startEdit(t: Terminal): void {
     if (!t.can_edit_description || !t.device_id) { return; }
     this.editingId = t.device_id;
