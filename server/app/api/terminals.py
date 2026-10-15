@@ -8,6 +8,7 @@ No són una màquina d'estats.
 """
 
 import logging
+import unicodedata
 from datetime import timezone
 
 from flask import Blueprint, jsonify, request, current_app
@@ -83,6 +84,37 @@ def _warnings_for_device(device, obs, server_url):
     return warnings
 
 
+def _sort_text(text):
+    """
+    Text normalitzat per ordenar: sense distinció de majúscules ni d'accents,
+    perquè «Àrea» quedi amb les A i no al final.
+    """
+    decomposed = unicodedata.normalize('NFKD', text or '')
+    return ''.join(c for c in decomposed if not unicodedata.combining(c)).casefold()
+
+
+def _row_sort_key(row):
+    """
+    Ordre estable de la taula:
+      1. Primer els dispositius gestionats pel programa, després els que només
+         veu el discovery (FREE i FOREIGN).
+      2. Dins de cada grup, els que tenen descripció per ordre alfabètic, i
+         després els que no en tenen.
+      3. A igualtat, per EUI64.
+
+    No es pot ordenar per Devices.datetimestamp: s'actualitza cada vegada que
+    es modifica la fila, inclòs cada keep-alive, i la taula es reordenaria
+    contínuament.
+    """
+    description = (row.get('description') or '').strip()
+    return (
+        0 if row.get('device_id') else 1,
+        0 if description else 1,
+        _sort_text(description),
+        row.get('eui64') or '',
+    )
+
+
 def _device_to_dict(device, obs, server_url):
     return {
         'device_id': device.device_id,
@@ -105,6 +137,7 @@ def _device_to_dict(device, obs, server_url):
                        and MgrDevices.license_available()),
         'can_release': device.status == DeviceStatus.ENROLLED and not device.is_assigned,
         'can_delete': MgrDevices.can_delete_manually(device)[0],
+        'can_edit_description': MgrDevices.can_edit_description(device),
     }
 
 
@@ -120,7 +153,7 @@ def list_terminals():
 
         rows = []
         known = set()
-        for device in Devices.query.order_by(Devices.datetimestamp.desc()).all():
+        for device in Devices.query.all():
             known.add(device.eui64)
             rows.append(_device_to_dict(device, observations.get(device.eui64), server_url))
 
@@ -151,8 +184,11 @@ def list_terminals():
                 'can_assign': False,
                 'can_release': False,
                 'can_delete': False,
+                'can_edit_description': False,
                 'can_link': obs.is_virgin(),
             })
+
+        rows.sort(key=_row_sort_key)
 
         return jsonify({
             'terminals': rows,
@@ -202,6 +238,17 @@ def link_terminal():
     if not ok:
         return jsonify({'error': f'Registre creat, però la vinculació UDP ha fallat: {err}'}), 502
     return jsonify({'device_id': device.device_id, 'eui64': device.eui64})
+
+
+@terminals_bp.route('/api/terminals/<device_id>/description', methods=['PUT'])
+def update_description(device_id):
+    """Canvia la descripció d'un dispositiu enrolat o pendent d'enrolar."""
+    body = request.get_json(force=True, silent=True) or {}
+    device = MgrDevices.get_by_id(device_id)
+    if device is None:
+        return jsonify({'error': 'Dispositiu desconegut.'}), 404
+    ok, err = MgrDevices.update_description(device, body.get('description', ''))
+    return (jsonify({'ok': True}) if ok else (jsonify({'error': err}), 400))
 
 
 @terminals_bp.route('/api/terminals/<device_id>/assign', methods=['POST'])

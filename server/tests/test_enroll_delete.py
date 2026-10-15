@@ -458,6 +458,106 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self.client.delete(f'/api/terminals/{device.device_id}')
         self.assertIsNone(self.discovery.get_observation(EUI64))
 
+    # -- edició de la descripció -----------------------------------
+    def test_description_editable_when_enrolled(self):
+        device = self.enroll_device()
+        r = self.client.put(f'/api/terminals/{device.device_id}/description',
+                            json={'description': '  Porta principal  '})
+        self.assertEqual(r.status_code, 200)
+        db.session.refresh(device)
+        self.assertEqual(device.description, 'Porta principal')   # sense espais
+        row = self.client.get('/api/terminals').get_json()['terminals'][0]
+        self.assertTrue(row['can_edit_description'])
+
+    def test_description_editable_when_enroll_pending(self):
+        self.discovery.put_virgin(EUI64)
+        self.client.post('/api/terminals/link', json={'eui64': EUI64, 'description': 'Abans'})
+        device = Devices.query.filter_by(eui64=EUI64).first()
+        self.assertEqual(device.status, DeviceStatus.ENROLL_PENDING)
+        r = self.client.put(f'/api/terminals/{device.device_id}/description',
+                            json={'description': 'Després'})
+        self.assertEqual(r.status_code, 200)
+
+    def test_description_can_be_emptied(self):
+        device = self.enroll_device()
+        self.client.put(f'/api/terminals/{device.device_id}/description',
+                        json={'description': 'Alguna cosa'})
+        r = self.client.put(f'/api/terminals/{device.device_id}/description',
+                            json={'description': ''})
+        self.assertEqual(r.status_code, 200)
+        db.session.refresh(device)
+        self.assertEqual(device.description, '')
+
+    def test_description_not_editable_when_delete_pending(self):
+        device = self.enroll_device()
+        self.client.post(f'/api/terminals/{device.device_id}/release')
+        r = self.client.put(f'/api/terminals/{device.device_id}/description',
+                            json={'description': 'X'})
+        self.assertEqual(r.status_code, 400)
+        row = self.client.get('/api/terminals').get_json()['terminals'][0]
+        self.assertFalse(row['can_edit_description'])
+
+    def test_description_not_editable_without_record(self):
+        """Les files sense registre (FREE, FOREIGN) no tenen res a editar."""
+        self.discovery.put_virgin(EUI64)
+        row = self.client.get('/api/terminals').get_json()['terminals'][0]
+        self.assertFalse(row['can_edit_description'])
+
+    def test_description_too_long_rejected(self):
+        device = self.enroll_device()
+        r = self.client.put(f'/api/terminals/{device.device_id}/description',
+                            json={'description': 'x' * 121})
+        self.assertEqual(r.status_code, 400)
+
+    # -- ordre de la taula -------------------------------------------
+    def _make(self, eui64, description, status=DeviceStatus.ENROLLED):
+        from app.mgr_devices import MgrDevices
+        d, _ = MgrDevices.create_pending(eui64, description)
+        d.status = status
+        db.session.commit()
+        return d
+
+    def _order(self):
+        return [r['eui64'] for r in self.client.get('/api/terminals').get_json()['terminals']]
+
+    def test_table_sorted_by_description_then_eui64(self):
+        self._make('00000000000000C3', 'Zona de càrrega')
+        self._make('00000000000000A1', 'àrea de descans')   # accent i minúscula
+        self._make('00000000000000B2', 'Bústies')
+        self._make('00000000000000F9', '')                  # sense descripció
+        self._make('00000000000000E8', '')                  # sense descripció
+        self.discovery.put_virgin('00000000000000D0')       # FREE, sense registre
+
+        self.assertEqual(self._order(), [
+            '00000000000000A1',   # àrea de descans
+            '00000000000000B2',   # Bústies
+            '00000000000000C3',   # Zona de càrrega
+            '00000000000000E8',   # sense descripció, per EUI64
+            '00000000000000F9',
+            '00000000000000D0',   # els no gestionats, al final
+        ])
+
+    def test_order_stable_after_keep_alive(self):
+        """
+        Un keep-alive actualitza la fila, i abans això la pujava al capdamunt.
+        L'ordre no ha de canviar.
+        """
+        from app.mgr_link import MgrLink
+        self._make('00000000000000A1', 'Alfa')
+        b = self._make('00000000000000B2', 'Beta')
+        before = self._order()
+        import time as _t
+        _t.sleep(0.05)
+        MgrLink.on_device_call(b)
+        db.session.commit()
+        self.assertEqual(self._order(), before)
+
+    def test_order_follows_renamed_description(self):
+        a = self._make('00000000000000A1', 'Alfa')
+        self._make('00000000000000B2', 'Beta')
+        self.client.put(f'/api/terminals/{a.device_id}/description', json={'description': 'Zeta'})
+        self.assertEqual(self._order(), ['00000000000000B2', '00000000000000A1'])
+
     def test_nothing_to_do_returns_null(self):
         """
         Quan no hi ha instruccions es retorna null, no un msgType inventat: el

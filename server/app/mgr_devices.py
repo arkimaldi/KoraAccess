@@ -222,6 +222,44 @@ class MgrDevices:
         return False, 'Un dispositiu enrolat s\'ha d\'alliberar, no esborrar.'
 
     # ------------------------------------------------------------------
+    # Descripció
+    # ------------------------------------------------------------------
+    DESCRIPTION_EDITABLE_STATUS = (DeviceStatus.ENROLLED, DeviceStatus.ENROLL_PENDING)
+    DESCRIPTION_MAX_LEN = 120
+
+    @staticmethod
+    def can_edit_description(device):
+        """
+        La descripció és editable si Devices.status és enrolled o
+        enroll_pending. No en delete_pending: el registre està a punt de
+        desaparèixer.
+        """
+        return device.status in MgrDevices.DESCRIPTION_EDITABLE_STATUS
+
+    @staticmethod
+    def update_description(device, description):
+        """
+        Canvia la descripció. Pot quedar buida, igual que en vincular.
+        És una dada del programa: no es transmet al dispositiu.
+        """
+        try:
+            if not MgrDevices.can_edit_description(device):
+                return False, 'La descripció només es pot editar en dispositius enrolats o pendents d\'enrolar.'
+            description = (description or '').strip()
+            if len(description) > MgrDevices.DESCRIPTION_MAX_LEN:
+                return False, f'La descripció no pot superar {MgrDevices.DESCRIPTION_MAX_LEN} caràcters.'
+            old = device.description
+            device.description = description
+            MgrLogs.add('description_changed', f"'{old}' -> '{description}'",
+                        device=device, commit=False)
+            db.session.commit()
+            return True, None
+        except Exception as e:
+            logging.error('update_description exception: %s', e)
+            db.session.rollback()
+            return False, str(e)
+
+    # ------------------------------------------------------------------
     # Assignació a porta
     # ------------------------------------------------------------------
     @staticmethod
