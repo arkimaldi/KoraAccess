@@ -37,8 +37,8 @@ class DescriptionDisplayTest(E2ETestCase):
 
     EXPECTED = {
         '00000000000000A1': ('Porta principal', True),
-        '00000000000000A2': ('Afegir descripció', True),
-        '00000000000000A3': ('Afegir descripció', True),
+        '00000000000000A2': ('Add description', True),
+        '00000000000000A3': ('Add description', True),
         '00000000000000A4': ('—', False),
         '00000000000000F1': ('—', False),
         '00000000000000F2': ('—', False),
@@ -130,7 +130,7 @@ class DescriptionEditTest(E2ETestCase):
         self.page.keyboard.press('Delete')
         self.page.keyboard.press('Enter')
         self.page.wait_for_timeout(1200)
-        self.assertEqual(self.desc_cell('00000000000000B4').inner_text().strip(), 'Afegir descripció')
+        self.assertEqual(self.desc_cell('00000000000000B4').inner_text().strip(), 'Add description')
 
     def test_column_does_not_shift_when_editing(self):
         """Regressió: en entrar en edició, la columna s'eixamplava."""

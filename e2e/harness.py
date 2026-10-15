@@ -143,6 +143,9 @@ class E2ETestCase(unittest.TestCase):
     SEED = []
     OBSERVATIONS = []        # [(eui64, remote_url), ...]
     VIEWPORT = {'width': 1300, 'height': 700}
+    # Idioma del navegador. La interfície el fa servir si no se n'ha triat cap
+    # amb el selector. Cada prova obre un context nou, sense idioma desat.
+    LOCALE = 'en-US'
 
     @classmethod
     def setUpClass(cls):
@@ -170,7 +173,7 @@ class E2ETestCase(unittest.TestCase):
         time.sleep(0.5)   # fora del navegador: aquí sí que és correcte
 
     def setUp(self):
-        self.page = self.browser.new_page(viewport=self.VIEWPORT)
+        self.page = self.browser.new_page(viewport=self.VIEWPORT, locale=self.LOCALE)
 
     def tearDown(self):
         # En cas d'error, desa una captura per poder veure què hi havia.

@@ -254,6 +254,11 @@ es desa `web_securized` a fals i queda registrat.
 
 ## 7. Endpoints
 
+Els errors i els avisos de cada fila (`warnings`) arriben com a claus de
+traducció, no com a text: `{"message_key", "params", "message"}`. Els tradueix el
+frontend. Vegeu `server/app/messages.py` i la secció de traduccions de
+`webapp/README.md`.
+
 ### `GET /api/terminals`
 
 Construeix tota la pantalla. Fa quatre passos:

@@ -64,11 +64,32 @@ renombraments i els proposa com a esborrar més crear, cosa que perdria dades.
 SQLite no admet `ALTER COLUMN` ni `DROP COLUMN`. Flask-Migrate ho resol amb
 `render_as_batch`, actiu per defecte, que recrea la taula.
 
+## Missatges i codis d'error
+
+El servidor **no tradueix**. Tots els errors de `/api/` i els avisos de la
+pantalla porten la mateixa forma, definida a `app/messages.py`:
+
+```json
+{"message_key": "MSG_DEVICE_UNKNOWN", "params": {}, "message": "Unknown device."}
+```
+
+El frontend tradueix `message_key`; `message` és el text anglès de reserva.
+
+Els codis HTTP són gruixuts: 400 validació, 404 recurs inexistent, 409 conflicte
+d'estat, 500 error inesperat. La precisió la dona la clau. Per llançar un error
+des d'un gestor: `return False, AppError(Msg.X, 409, param=valor)`.
+
+`/v1/Cloud/Event` no segueix aquesta convenció: és el protocol dels terminals i
+manté el contracte de KapriCloudMainAPI.
+
 ## Proves
 
 ```bash
-python tests/test_enroll_delete.py
+python -m unittest discover -s tests -v
 ```
+
+`test_i18n.py` comprova que les traduccions del frontend quadren amb els
+missatges d'aquí.
 
 Simulen un dispositiu real: cicle complet, límit de llicència, esborrat manual
 i avisos de contradicció.

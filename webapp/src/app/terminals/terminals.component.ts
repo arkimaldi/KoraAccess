@@ -4,9 +4,11 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription, timer } from 'rxjs';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { TerminalsService } from '../services/terminals.service';
-import { LicenseInfo, Terminal } from '../models/terminal.model';
+import { ApiMessage, LicenseInfo, Terminal } from '../models/terminal.model';
+import { MessageService } from '../services/message.service';
 import { AutofocusDirective } from '../shared/autofocus.directive';
 
 /**
@@ -36,7 +38,7 @@ const INITIAL_SCAN_WAIT_MS = 2000;
 @Component({
   selector: 'kora-terminals',
   standalone: true,
-  imports: [CommonModule, FormsModule, AutofocusDirective],
+  imports: [CommonModule, FormsModule, TranslateModule, AutofocusDirective],
   templateUrl: './terminals.component.html',
   styleUrls: ['./terminals.component.css']
 })
@@ -46,7 +48,12 @@ export class TerminalsComponent implements OnInit, OnDestroy {
   license: LicenseInfo = { assigned: 0, limit: 0 };
   serverUrl = '';
   loading = false;
-  errorMessage = '';
+
+  /**
+   * Error a mostrar. Es desa el missatge sencer i no el text, perquè es torni a
+   * traduir si l'usuari canvia d'idioma mentre és a la pantalla.
+   */
+  error: ApiMessage | null = null;
 
   /** Cert fins que arriba el primer llistat amb dades vàlides. */
   initialLoading = true;
@@ -59,7 +66,9 @@ export class TerminalsComponent implements OnInit, OnDestroy {
   private scanTimer?: Subscription;
   private lastScanAt = 0;
 
-  constructor(private service: TerminalsService) {}
+  constructor(private service: TerminalsService,
+              private translate: TranslateService,
+              public messages: MessageService) {}
 
   ngOnInit(): void {
     this.initialLoad();
@@ -184,14 +193,15 @@ export class TerminalsComponent implements OnInit, OnDestroy {
 
   // --- accions ------------------------------------------------------
   link(t: Terminal): void {
-    const description = window.prompt('Descripció del terminal:', t.description || '');
+    const description = window.prompt(this.translate.instant('_sys_promptTerminalDescription'),
+                                      t.description || '');
     if (description === null) { return; }
     this.run(this.service.link(t.eui64, description));
   }
 
   assign(t: Terminal): void {
     if (!t.device_id) { return; }
-    const portal = window.prompt('Nom de la porta:', '');
+    const portal = window.prompt(this.translate.instant('_sys_promptDoorName'), '');
     if (portal === null) { return; }
     this.run(this.service.assign(t.device_id, portal));
   }
@@ -203,13 +213,13 @@ export class TerminalsComponent implements OnInit, OnDestroy {
 
   release(t: Terminal): void {
     if (!t.device_id) { return; }
-    if (!window.confirm(`Alliberar ${t.eui64}? El terminal quedarà verge.`)) { return; }
+    if (!window.confirm(this.translate.instant('_sys_confirmRelease', { eui64: t.eui64 }))) { return; }
     this.run(this.service.release(t.device_id));
   }
 
   remove(t: Terminal): void {
     if (!t.device_id) { return; }
-    if (!window.confirm(`Esborrar el registre de ${t.eui64}?`)) { return; }
+    if (!window.confirm(this.translate.instant('_sys_confirmDeleteRecord', { eui64: t.eui64 }))) { return; }
     this.run(this.service.remove(t.device_id));
   }
 
@@ -222,14 +232,9 @@ export class TerminalsComponent implements OnInit, OnDestroy {
     return t.link ? 'link link-' + t.link : 'link link-unknown';
   }
 
-  linkText(t: Terminal): string {
-    switch (t.link) {
-      case 'online': return 'En línia';
-      case 'lost': return 'Perdut';
-      case 'severe_lost': return 'Perdut (greu)';
-      case 'offline': return 'Fora de línia';
-      default: return '—';
-    }
+  /** Clau de traducció de l'estat de connexió. */
+  linkKey(t: Terminal): string {
+    return t.link ? `_sys_link_${t.link}` : '';
   }
 
   trackByEui64(_: number, t: Terminal): string {
@@ -238,15 +243,15 @@ export class TerminalsComponent implements OnInit, OnDestroy {
 
   private run(obs: { subscribe: Function }): void {
     this.loading = true;
-    this.errorMessage = '';
+    this.error = null;
     (obs as any).subscribe({
       next: () => this.refresh(false),
       error: (err: any) => this.fail(err)
     });
   }
 
-  private fail(err: any): void {
+  private fail(err: unknown): void {
     this.loading = false;
-    this.errorMessage = err?.error?.error || err?.message || 'Error desconegut';
+    this.error = this.messages.fromHttpError(err);
   }
 }

@@ -15,6 +15,7 @@ from flask import Blueprint, jsonify, request, current_app
 
 from app.db_models import Devices
 from app.global_consts import DeviceStatus
+from app.messages import AppError, Msg, message
 from app.mgr_devices import MgrDevices
 
 terminals_bp = Blueprint('terminals', __name__)
@@ -71,16 +72,15 @@ def _warnings_for_device(device, obs, server_url):
         return warnings
     if device.status == DeviceStatus.ENROLLED and obs is not None:
         if obs.is_virgin():
-            warnings.append('El dispositiu s\'ha resetejat per fora: cal esborrar-ne el registre.')
+            warnings.append(message(Msg.WARN_RESET_EXTERNALLY))
         elif not obs.belongs_to(server_url):
-            warnings.append('El dispositiu apunta ara a un altre servidor: cal un reset físic.')
+            warnings.append(message(Msg.WARN_POINTS_ELSEWHERE))
 
     # Vinculat correctament però que no arriba mai a enrolar-se
     if (device.status == DeviceStatus.ENROLL_PENDING
             and device.link_kick_dts is None
             and obs is not None and obs.belongs_to(server_url)):
-        warnings.append('El dispositiu apunta al servidor però no hi arriba: '
-                        'comproveu que resol el domini pel DNS de la instal·lació.')
+        warnings.append(message(Msg.WARN_CANNOT_REACH_SERVER))
     return warnings
 
 
@@ -179,8 +179,7 @@ def list_terminals():
                 'is_assigned': False,
                 'seen_in_discovery': True,
                 'warnings': ([] if obs.is_virgin() or not obs.belongs_to(server_url) else
-                             ['El dispositiu apunta a aquest servidor però no hi consta: '
-                              'cal un reset físic per recuperar-lo.']),
+                             [message(Msg.WARN_UNKNOWN_POINTS_HERE)]),
                 'can_assign': False,
                 'can_release': False,
                 'can_delete': False,
@@ -200,7 +199,7 @@ def list_terminals():
         })
     except Exception as e:
         logging.error('list_terminals exception: %s', e)
-        return jsonify({'error': str(e)}), 500
+        return AppError(Msg.INTERNAL_ERROR, 500).response()
 
 
 @terminals_bp.route('/api/discovery/scan', methods=['POST'])
@@ -221,13 +220,13 @@ def link_terminal():
 
     obs = _discovery().get_observation(eui64) if eui64 else None
     if obs is None:
-        return jsonify({'error': 'El dispositiu no apareix al discovery.'}), 400
+        return AppError(Msg.DEVICE_NOT_DISCOVERED, 404).response()
     if not obs.is_virgin():
-        return jsonify({'error': 'El dispositiu ja està vinculat a un servidor.'}), 400
+        return AppError(Msg.DEVICE_ALREADY_LINKED, 409).response()
 
     device, err = MgrDevices.create_pending(eui64, description)
     if device is None:
-        return jsonify({'error': err}), 400
+        return err.response()
 
     # L'observació que tenim és d'abans de configurar el dispositiu: queda
     # obsoleta en el mateix moment de vincular-lo.
@@ -236,7 +235,8 @@ def link_terminal():
     ok, err = _discovery().send_link(obs.ip_address, _server_url(),
                                      current_app.config['DEVICES_KEEP_ALIVE_TMO'])
     if not ok:
-        return jsonify({'error': f'Registre creat, però la vinculació UDP ha fallat: {err}'}), 502
+        logging.error('Link request could not be sent to %s: %s', obs.ip_address, err)
+        return AppError(Msg.LINK_SEND_FAILED, 502).response()
     return jsonify({'device_id': device.device_id, 'eui64': device.eui64})
 
 
@@ -246,9 +246,9 @@ def update_description(device_id):
     body = request.get_json(force=True, silent=True) or {}
     device = MgrDevices.get_by_id(device_id)
     if device is None:
-        return jsonify({'error': 'Dispositiu desconegut.'}), 404
+        return AppError(Msg.DEVICE_UNKNOWN, 404).response()
     ok, err = MgrDevices.update_description(device, body.get('description', ''))
-    return (jsonify({'ok': True}) if ok else (jsonify({'error': err}), 400))
+    return jsonify({'ok': True}) if ok else err.response()
 
 
 @terminals_bp.route('/api/terminals/<device_id>/assign', methods=['POST'])
@@ -256,18 +256,18 @@ def assign_terminal(device_id):
     body = request.get_json(force=True, silent=True) or {}
     device = MgrDevices.get_by_id(device_id)
     if device is None:
-        return jsonify({'error': 'Dispositiu desconegut.'}), 404
+        return AppError(Msg.DEVICE_UNKNOWN, 404).response()
     ok, err = MgrDevices.assign_to_portal(device, body.get('portal_name', ''))
-    return (jsonify({'ok': True}) if ok else (jsonify({'error': err}), 400))
+    return jsonify({'ok': True}) if ok else err.response()
 
 
 @terminals_bp.route('/api/terminals/<device_id>/unassign', methods=['POST'])
 def unassign_terminal(device_id):
     device = MgrDevices.get_by_id(device_id)
     if device is None:
-        return jsonify({'error': 'Dispositiu desconegut.'}), 404
+        return AppError(Msg.DEVICE_UNKNOWN, 404).response()
     ok, err = MgrDevices.unassign(device)
-    return (jsonify({'ok': True}) if ok else (jsonify({'error': err}), 400))
+    return jsonify({'ok': True}) if ok else err.response()
 
 
 @terminals_bp.route('/api/terminals/<device_id>/release', methods=['POST'])
@@ -275,9 +275,9 @@ def release_terminal(device_id):
     """Ordena l'alliberament: el registre passa a delete_pending."""
     device = MgrDevices.get_by_id(device_id)
     if device is None:
-        return jsonify({'error': 'Dispositiu desconegut.'}), 404
+        return AppError(Msg.DEVICE_UNKNOWN, 404).response()
     ok, err = MgrDevices.request_delete(device)
-    return (jsonify({'ok': True}) if ok else (jsonify({'error': err}), 400))
+    return jsonify({'ok': True}) if ok else err.response()
 
 
 @terminals_bp.route('/api/terminals/<device_id>', methods=['DELETE'])
@@ -285,9 +285,9 @@ def delete_terminal(device_id):
     """Esborrat manual del registre, sense instrucció al dispositiu."""
     device = MgrDevices.get_by_id(device_id)
     if device is None:
-        return jsonify({'error': 'Dispositiu desconegut.'}), 404
+        return AppError(Msg.DEVICE_UNKNOWN, 404).response()
     ok, err = MgrDevices.can_delete_manually(device)
     if not ok:
-        return jsonify({'error': err}), 400
+        return err.response()
     MgrDevices.delete(device, reason='esborrat manual')
     return jsonify({'ok': True})

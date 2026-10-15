@@ -208,7 +208,8 @@ class EnrollDeleteTestCase(unittest.TestCase):
 
         # 7. No es pot alliberar mentre està assignat
         r = self.client.post(f'/api/terminals/{device.device_id}/release')
-        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.get_json()['message_key'], 'MSG_RELEASE_DEVICE_ASSIGNED')
 
         # 8. Es desassigna i s'allibera
         self.client.post(f'/api/terminals/{device.device_id}/unassign')
@@ -241,7 +242,8 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self.client.post(f'/api/terminals/{device.device_id}/release')
 
         r = self.client.delete(f'/api/terminals/{device.device_id}')
-        self.assertEqual(r.status_code, 400)       # encara online
+        self.assertEqual(r.status_code, 409)       # encara online
+        self.assertEqual(r.get_json()['message_key'], 'MSG_DELETE_REQUIRES_SEVERE_LOST')
 
         device.link = LinkState.SEVERE_LOST
         db.session.commit()
@@ -257,8 +259,10 @@ class EnrollDeleteTestCase(unittest.TestCase):
         device = Devices.query.filter_by(eui64=EUI64).first()
         r = self.client.post(f'/api/terminals/{device.device_id}/assign',
                              json={'portal_name': 'X'})
-        self.assertEqual(r.status_code, 400)
-        self.assertIn('llicència', r.get_json()['error'])
+        body = r.get_json()
+        self.assertEqual(body['message_key'], 'MSG_LICENSE_LIMIT_REACHED')
+        self.assertEqual(body['params'], {'assigned': 0, 'limit': 0})
+        self.assertEqual(r.status_code, 409)
 
     def test_foreign_and_reset_warnings(self):
         # Dispositiu vinculat a un altre servidor i sense registre: FOREIGN
@@ -282,7 +286,8 @@ class EnrollDeleteTestCase(unittest.TestCase):
         _t.sleep(1.1)
         self.discovery.put_virgin(EUI64)
         rows = self.client.get('/api/terminals').get_json()['terminals']
-        self.assertTrue(any('resetejat' in w for w in rows[0]['warnings']))
+        self.assertIn('MSG_WARN_RESET_EXTERNALLY',
+                      [w['message_key'] for w in rows[0]['warnings']])
 
 
     # -- casos detectats en proves amb maquinari real ----------------
@@ -493,7 +498,8 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self.client.post(f'/api/terminals/{device.device_id}/release')
         r = self.client.put(f'/api/terminals/{device.device_id}/description',
                             json={'description': 'X'})
-        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.get_json()['message_key'], 'MSG_DESCRIPTION_NOT_EDITABLE')
         row = self.client.get('/api/terminals').get_json()['terminals'][0]
         self.assertFalse(row['can_edit_description'])
 
@@ -557,6 +563,41 @@ class EnrollDeleteTestCase(unittest.TestCase):
         self._make('00000000000000B2', 'Beta')
         self.client.put(f'/api/terminals/{a.device_id}/description', json={'description': 'Zeta'})
         self.assertEqual(self._order(), ['00000000000000B2', '00000000000000A1'])
+
+    # -- format dels missatges ---------------------------------------
+    def test_error_has_common_shape(self):
+        """Tot error de /api/ porta message_key, params i message en anglès."""
+        r = self.client.post('/api/terminals/00000000-0000-0000-0000-000000000000/release')
+        self.assertEqual(r.status_code, 404)
+        body = r.get_json()
+        self.assertEqual(set(body), {'message_key', 'params', 'message'})
+        self.assertEqual(body['message_key'], 'MSG_DEVICE_UNKNOWN')
+        self.assertEqual(body['message'], 'Unknown device.')
+
+    def test_params_are_interpolated_in_fallback_message(self):
+        device = self.enroll_device()
+        r = self.client.put(f'/api/terminals/{device.device_id}/description',
+                            json={'description': 'x' * 121})
+        body = r.get_json()
+        self.assertEqual(body['params'], {'max': 120})
+        self.assertEqual(body['message'], 'The description cannot exceed 120 characters.')
+
+    def test_warning_has_common_shape(self):
+        self.discovery.put_linked(EUI64, SERVER_URL)
+        rows = self.client.get('/api/terminals').get_json()['terminals']
+        w = rows[0]['warnings'][0]
+        self.assertEqual(set(w), {'message_key', 'params', 'message'})
+        self.assertEqual(w['message_key'], 'MSG_WARN_UNKNOWN_POINTS_HERE')
+
+    def test_unexpected_error_has_common_shape(self):
+        """Un error no previst també respon amb el format comú, sense filtrar detalls."""
+        from unittest import mock
+        with mock.patch('app.api.terminals.MgrDevices.count_assigned',
+                        side_effect=RuntimeError('detall intern')):
+            r = self.client.get('/api/terminals')
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.get_json()['message_key'], 'MSG_INTERNAL_ERROR')
+        self.assertNotIn('detall intern', r.get_data(as_text=True))
 
     def test_nothing_to_do_returns_null(self):
         """

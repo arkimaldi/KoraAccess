@@ -17,6 +17,7 @@ from flask import current_app
 from app.extensions import db
 from app.db_models import Devices, PortalDevices, utcnow
 from app.global_consts import DeviceStatus, LinkState
+from app.messages import AppError, Msg
 from app.mgr_logs import MgrLogs
 
 
@@ -66,7 +67,8 @@ class MgrDevices:
             existing = MgrDevices.get_by_eui64(eui64)
             if existing is not None:
                 if existing.status != DeviceStatus.ENROLL_PENDING:
-                    return None, f'El dispositiu {eui64} ja consta com a {existing.status}.'
+                    return None, AppError(Msg.DEVICE_ALREADY_REGISTERED, 409,
+                                          eui64=eui64, status=existing.status)
                 existing.cloud_remote_server_token = str(uuid.uuid4())
                 existing.web_admin_password = secrets.token_urlsafe(16)
                 existing.link = LinkState.OFFLINE
@@ -94,7 +96,7 @@ class MgrDevices:
         except Exception as e:
             logging.error('create_pending exception: %s', e)
             db.session.rollback()
-            return None, str(e)
+            return None, AppError(Msg.INTERNAL_ERROR, 500)
 
     # ------------------------------------------------------------------
     # Validació del token
@@ -156,9 +158,9 @@ class MgrDevices:
         """
         try:
             if device.status != DeviceStatus.ENROLLED:
-                return False, 'Només es pot alliberar un dispositiu enrolat.'
+                return False, AppError(Msg.RELEASE_NOT_ENROLLED, 409)
             if device.is_assigned:
-                return False, 'Cal substituir primer el terminal de la porta.'
+                return False, AppError(Msg.RELEASE_DEVICE_ASSIGNED, 409)
             device.status = DeviceStatus.DELETE_PENDING
             device.delete_requested_dts = utcnow()
             MgrLogs.add('delete_requested', '', device=device, commit=False)
@@ -167,7 +169,7 @@ class MgrDevices:
         except Exception as e:
             logging.error('request_delete exception: %s', e)
             db.session.rollback()
-            return False, str(e)
+            return False, AppError(Msg.INTERNAL_ERROR, 500)
 
     @staticmethod
     def delete(device, reason=''):
@@ -218,8 +220,8 @@ class MgrDevices:
         if device.status == DeviceStatus.DELETE_PENDING:
             if device.link == LinkState.SEVERE_LOST:
                 return True, None
-            return False, 'Només es pot esborrar manualment quan el dispositiu està en severe_lost.'
-        return False, 'Un dispositiu enrolat s\'ha d\'alliberar, no esborrar.'
+            return False, AppError(Msg.DELETE_REQUIRES_SEVERE_LOST, 409)
+        return False, AppError(Msg.DELETE_ENROLLED_DEVICE, 409)
 
     # ------------------------------------------------------------------
     # Descripció
@@ -244,10 +246,11 @@ class MgrDevices:
         """
         try:
             if not MgrDevices.can_edit_description(device):
-                return False, 'La descripció només es pot editar en dispositius enrolats o pendents d\'enrolar.'
+                return False, AppError(Msg.DESCRIPTION_NOT_EDITABLE, 409)
             description = (description or '').strip()
             if len(description) > MgrDevices.DESCRIPTION_MAX_LEN:
-                return False, f'La descripció no pot superar {MgrDevices.DESCRIPTION_MAX_LEN} caràcters.'
+                return False, AppError(Msg.DESCRIPTION_TOO_LONG, 400,
+                                       max=MgrDevices.DESCRIPTION_MAX_LEN)
             old = device.description
             device.description = description
             MgrLogs.add('description_changed', f"'{old}' -> '{description}'",
@@ -257,7 +260,7 @@ class MgrDevices:
         except Exception as e:
             logging.error('update_description exception: %s', e)
             db.session.rollback()
-            return False, str(e)
+            return False, AppError(Msg.INTERNAL_ERROR, 500)
 
     # ------------------------------------------------------------------
     # Assignació a porta
@@ -266,12 +269,13 @@ class MgrDevices:
     def assign_to_portal(device, portal_name):
         try:
             if device.status != DeviceStatus.ENROLLED:
-                return False, 'Només es pot assignar un dispositiu enrolat.'
+                return False, AppError(Msg.ASSIGN_NOT_ENROLLED, 409)
             if device.is_assigned:
-                return False, 'El dispositiu ja està assignat a una porta.'
+                return False, AppError(Msg.DEVICE_ALREADY_ASSIGNED, 409)
             if not MgrDevices.license_available():
-                return False, ('Límit de llicència assolit '
-                               f'({MgrDevices.count_assigned()}/{MgrDevices.license_limit()}).')
+                return False, AppError(Msg.LICENSE_LIMIT_REACHED, 409,
+                                       assigned=MgrDevices.count_assigned(),
+                                       limit=MgrDevices.license_limit())
             db.session.add(PortalDevices(device_id=device.device_id, portal_name=portal_name or ''))
             MgrLogs.add('assigned', portal_name or '', device=device, commit=False)
             db.session.commit()
@@ -279,13 +283,13 @@ class MgrDevices:
         except Exception as e:
             logging.error('assign_to_portal exception: %s', e)
             db.session.rollback()
-            return False, str(e)
+            return False, AppError(Msg.INTERNAL_ERROR, 500)
 
     @staticmethod
     def unassign(device):
         try:
             if not device.is_assigned:
-                return False, 'El dispositiu no està assignat.'
+                return False, AppError(Msg.DEVICE_NOT_ASSIGNED, 409)
             db.session.delete(device.portal_device)
             MgrLogs.add('unassigned', '', device=device, commit=False)
             db.session.commit()
@@ -293,4 +297,4 @@ class MgrDevices:
         except Exception as e:
             logging.error('unassign exception: %s', e)
             db.session.rollback()
-            return False, str(e)
+            return False, AppError(Msg.INTERNAL_ERROR, 500)

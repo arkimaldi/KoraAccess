@@ -1,0 +1,262 @@
+{
+    "Access control": {
+        "ca.json": "Control d'accessos",
+        "en.json": "Access control",
+        "es.json": "Control de accesos"
+    },
+    "Actions": {
+        "ca.json": "Accions",
+        "en.json": "Actions",
+        "es.json": "Acciones"
+    },
+    "Add description": {
+        "ca.json": "Afegir descripció",
+        "en.json": "Add description",
+        "es.json": "Añadir descripción"
+    },
+    "Assign to door": {
+        "ca.json": "Assignar a porta",
+        "en.json": "Assign to door",
+        "es.json": "Asignar a puerta"
+    },
+    "Assigned": {
+        "ca.json": "Assignats",
+        "en.json": "Assigned",
+        "es.json": "Asignados"
+    },
+    "Connection": {
+        "ca.json": "Connexió",
+        "en.json": "Connection",
+        "es.json": "Conexión"
+    },
+    "Delete record": {
+        "ca.json": "Esborrar registre",
+        "en.json": "Delete record",
+        "es.json": "Borrar registro"
+    },
+    "Description": {
+        "ca.json": "Descripció",
+        "en.json": "Description",
+        "es.json": "Descripción"
+    },
+    "Door": {
+        "ca.json": "Porta",
+        "en.json": "Door",
+        "es.json": "Puerta"
+    },
+    "Enter to save · Esc to cancel": {
+        "ca.json": "Enter per desar · Esc per cancel·lar",
+        "en.json": "Enter to save · Esc to cancel",
+        "es.json": "Enter para guardar · Esc para cancelar"
+    },
+    "Link": {
+        "ca.json": "Vincular",
+        "en.json": "Link",
+        "es.json": "Vincular"
+    },
+    "MSG_ASSIGN_NOT_ENROLLED": {
+        "ca.json": "Només es pot assignar un dispositiu enrolat.",
+        "en.json": "Only an enrolled device can be assigned.",
+        "es.json": "Solo se puede asignar un dispositivo enrolado."
+    },
+    "MSG_DELETE_ENROLLED_DEVICE": {
+        "ca.json": "Un dispositiu enrolat s'ha d'alliberar, no esborrar.",
+        "en.json": "An enrolled device must be released, not deleted.",
+        "es.json": "Un dispositivo enrolado debe liberarse, no borrarse."
+    },
+    "MSG_DELETE_REQUIRES_SEVERE_LOST": {
+        "ca.json": "Només es pot esborrar el registre manualment quan el dispositiu està perdut (greu).",
+        "en.json": "A record can only be deleted manually when the device is severely lost.",
+        "es.json": "Solo se puede borrar el registro manualmente cuando el dispositivo está perdido (grave)."
+    },
+    "MSG_DESCRIPTION_NOT_EDITABLE": {
+        "ca.json": "La descripció només es pot editar en dispositius enrolats o pendents d'enrolar.",
+        "en.json": "The description can only be edited on enrolled or pending devices.",
+        "es.json": "La descripción solo se puede editar en dispositivos enrolados o pendientes de enrolar."
+    },
+    "MSG_DESCRIPTION_TOO_LONG": {
+        "ca.json": "La descripció no pot superar {{max}} caràcters.",
+        "en.json": "The description cannot exceed {{max}} characters.",
+        "es.json": "La descripción no puede superar {{max}} caracteres."
+    },
+    "MSG_DEVICE_ALREADY_ASSIGNED": {
+        "ca.json": "El dispositiu ja està assignat a una porta.",
+        "en.json": "The device is already assigned to a door.",
+        "es.json": "El dispositivo ya está asignado a una puerta."
+    },
+    "MSG_DEVICE_ALREADY_LINKED": {
+        "ca.json": "El dispositiu ja està vinculat a un servidor.",
+        "en.json": "The device is already linked to a server.",
+        "es.json": "El dispositivo ya está vinculado a un servidor."
+    },
+    "MSG_DEVICE_ALREADY_REGISTERED": {
+        "ca.json": "El dispositiu {{eui64}} ja consta com a {{status}}.",
+        "en.json": "The device {{eui64}} is already registered as {{status}}.",
+        "es.json": "El dispositivo {{eui64}} ya consta como {{status}}."
+    },
+    "MSG_DEVICE_NOT_ASSIGNED": {
+        "ca.json": "El dispositiu no està assignat.",
+        "en.json": "The device is not assigned.",
+        "es.json": "El dispositivo no está asignado."
+    },
+    "MSG_DEVICE_NOT_DISCOVERED": {
+        "ca.json": "El dispositiu no apareix al discovery.",
+        "en.json": "The device does not appear in the discovery.",
+        "es.json": "El dispositivo no aparece en el discovery."
+    },
+    "MSG_DEVICE_UNKNOWN": {
+        "ca.json": "Dispositiu desconegut.",
+        "en.json": "Unknown device.",
+        "es.json": "Dispositivo desconocido."
+    },
+    "MSG_INTERNAL_ERROR": {
+        "ca.json": "Error intern del servidor.",
+        "en.json": "Internal server error.",
+        "es.json": "Error interno del servidor."
+    },
+    "MSG_LICENSE_LIMIT_REACHED": {
+        "ca.json": "Límit de llicència assolit ({{assigned}}/{{limit}}).",
+        "en.json": "License limit reached ({{assigned}}/{{limit}}).",
+        "es.json": "Límite de licencia alcanzado ({{assigned}}/{{limit}})."
+    },
+    "MSG_LINK_SEND_FAILED": {
+        "ca.json": "S'ha creat el registre, però no s'ha pogut enviar la vinculació al dispositiu.",
+        "en.json": "The record was created, but the link request could not be sent to the device.",
+        "es.json": "Se ha creado el registro, pero no se ha podido enviar la vinculación al dispositivo."
+    },
+    "MSG_RELEASE_DEVICE_ASSIGNED": {
+        "ca.json": "Cal substituir primer el terminal de la porta.",
+        "en.json": "The terminal must first be replaced on its door.",
+        "es.json": "Primero hay que sustituir el terminal de la puerta."
+    },
+    "MSG_RELEASE_NOT_ENROLLED": {
+        "ca.json": "Només es pot alliberar un dispositiu enrolat.",
+        "en.json": "Only an enrolled device can be released.",
+        "es.json": "Solo se puede liberar un dispositivo enrolado."
+    },
+    "MSG_WARN_CANNOT_REACH_SERVER": {
+        "ca.json": "El dispositiu apunta a aquest servidor però no hi arriba: comproveu que resol el domini pel DNS de la instal·lació.",
+        "en.json": "The device points to this server but cannot reach it: check that it resolves the domain through the local DNS.",
+        "es.json": "El dispositivo apunta a este servidor pero no llega a él: compruebe que resuelve el dominio mediante el DNS de la instalación."
+    },
+    "MSG_WARN_POINTS_ELSEWHERE": {
+        "ca.json": "El dispositiu apunta ara a un altre servidor: cal un reset físic.",
+        "en.json": "The device now points to another server: a physical reset is required.",
+        "es.json": "El dispositivo apunta ahora a otro servidor: hace falta un reset físico."
+    },
+    "MSG_WARN_RESET_EXTERNALLY": {
+        "ca.json": "El dispositiu s'ha resetejat per fora: cal esborrar-ne el registre.",
+        "en.json": "The device has been reset externally: its record must be deleted.",
+        "es.json": "El dispositivo se ha reseteado desde fuera: hay que borrar su registro."
+    },
+    "MSG_WARN_UNKNOWN_POINTS_HERE": {
+        "ca.json": "El dispositiu apunta a aquest servidor però no hi consta: cal un reset físic per recuperar-lo.",
+        "en.json": "The device points to this server but is not registered: a physical reset is required to recover it.",
+        "es.json": "El dispositivo apunta a este servidor pero no consta en él: hace falta un reset físico para recuperarlo."
+    },
+    "Model / FW": {
+        "ca.json": "Model / FW",
+        "en.json": "Model / FW",
+        "es.json": "Modelo / FW"
+    },
+    "No terminals found. Check that the devices are on the same network and scan again.": {
+        "ca.json": "No s'ha trobat cap terminal. Comproveu que els dispositius són a la mateixa xarxa i torneu a explorar.",
+        "en.json": "No terminals found. Check that the devices are on the same network and scan again.",
+        "es.json": "No se ha encontrado ningún terminal. Compruebe que los dispositivos están en la misma red y vuelva a explorar."
+    },
+    "Release": {
+        "ca.json": "Alliberar",
+        "en.json": "Release",
+        "es.json": "Liberar"
+    },
+    "Scan now": {
+        "ca.json": "Explorar ara",
+        "en.json": "Scan now",
+        "es.json": "Explorar ahora"
+    },
+    "Scanning…": {
+        "ca.json": "Explorant…",
+        "en.json": "Scanning…",
+        "es.json": "Explorando…"
+    },
+    "Searching for terminals on the network…": {
+        "ca.json": "Cercant terminals a la xarxa…",
+        "en.json": "Searching for terminals on the network…",
+        "es.json": "Buscando terminales en la red…"
+    },
+    "Status": {
+        "ca.json": "Estat",
+        "en.json": "Status",
+        "es.json": "Estado"
+    },
+    "Terminal description": {
+        "ca.json": "Descripció del terminal",
+        "en.json": "Terminal description",
+        "es.json": "Descripción del terminal"
+    },
+    "Terminals": {
+        "ca.json": "Terminals",
+        "en.json": "Terminals",
+        "es.json": "Terminales"
+    },
+    "Terminals are linked to": {
+        "ca.json": "Els terminals es vinculen a",
+        "en.json": "Terminals are linked to",
+        "es.json": "Los terminales se vinculan a"
+    },
+    "Unassign": {
+        "ca.json": "Desassignar",
+        "en.json": "Unassign",
+        "es.json": "Desasignar"
+    },
+    "_sys_confirmDeleteRecord": {
+        "ca.json": "Esborrar el registre de {{eui64}}?",
+        "en.json": "Delete the record of {{eui64}}?",
+        "es.json": "¿Borrar el registro de {{eui64}}?"
+    },
+    "_sys_confirmRelease": {
+        "ca.json": "Alliberar {{eui64}}? El terminal quedarà verge.",
+        "en.json": "Release {{eui64}}? The terminal will be left as factory new.",
+        "es.json": "¿Liberar {{eui64}}? El terminal quedará como de fábrica."
+    },
+    "_sys_link_lost": {
+        "ca.json": "Perdut",
+        "en.json": "Lost",
+        "es.json": "Perdido"
+    },
+    "_sys_link_offline": {
+        "ca.json": "Fora de línia",
+        "en.json": "Offline",
+        "es.json": "Fuera de línea"
+    },
+    "_sys_link_online": {
+        "ca.json": "En línia",
+        "en.json": "Online",
+        "es.json": "En línea"
+    },
+    "_sys_link_severe_lost": {
+        "ca.json": "Perdut (greu)",
+        "en.json": "Lost (severe)",
+        "es.json": "Perdido (grave)"
+    },
+    "_sys_networkError": {
+        "ca.json": "No es pot contactar amb el servidor.",
+        "en.json": "Cannot reach the server.",
+        "es.json": "No se puede contactar con el servidor."
+    },
+    "_sys_promptDoorName": {
+        "ca.json": "Nom de la porta:",
+        "en.json": "Door name:",
+        "es.json": "Nombre de la puerta:"
+    },
+    "_sys_promptTerminalDescription": {
+        "ca.json": "Descripció del terminal:",
+        "en.json": "Terminal description:",
+        "es.json": "Descripción del terminal:"
+    },
+    "_sys_unexpectedError": {
+        "ca.json": "Error inesperat.",
+        "en.json": "Unexpected error.",
+        "es.json": "Error inesperado."
+    }
+}

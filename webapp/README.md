@@ -44,3 +44,64 @@ src/app/terminals/                    Pantalla de Terminals
   calcula el servidor. El frontend no les dedueix.
 - Els diàlegs fan servir `window.prompt` de moment: és la peça a substituir
   quan es decideixi el disseny visual.
+
+## Traduccions (i18n)
+
+Tota la traducció es fa aquí, amb **ngx-translate**, igual que a
+KapriCloudWebManager. El servidor no rep l'idioma: envia claus.
+
+Idiomes: `en` (per defecte i idioma de referència), `ca` i `es`. Fitxers a
+`src/assets/i18n/`.
+
+### Tres tipus de claus
+
+| Tipus | Exemple | D'on surt | Com es manté |
+|---|---|---|---|
+| Text de plantilla | `Add description` | `{{ 'Add description' \| translate }}` | `npm run ngx-extract` |
+| `_sys_...` | `_sys_confirmRelease` | Codi TypeScript (`translate.instant`) | A mà |
+| `MSG_...` | `MSG_LICENSE_LIMIT_REACHED` | Missatges del servidor (`server/app/messages.py`) | A mà |
+
+Les plantilles s'escriuen **en anglès**, i la clau és el mateix text. L'extractor
+només detecta la forma `{{ 'text' | translate }}`, també dins d'atributs
+(`placeholder="{{ 'text' | translate }}"`). No ha de contenir cometes.
+
+### Procediment
+
+És el mateix que a KapriCloudWebManager:
+
+1. Canvieu els textos només a les plantilles i al codi.
+2. `npm run ngx-extract`. **Sobreescriu `en.json` sencer** i hi deixa només les
+   claus de plantilla: restaureu-hi les `_sys_` i les `MSG_` (per exemple amb
+   `git diff` i desfent les línies esborrades).
+3. Feu servir `ngx_tool` amb `ngx_tool_dict.json` per completar `ca.json` i
+   `es.json`.
+4. Executeu `python tests/test_i18n.py` des de `server/`.
+
+### Missatges del servidor
+
+Arriben amb aquesta forma, tant els errors com els avisos de la pantalla:
+
+```json
+{"message_key": "MSG_LICENSE_LIMIT_REACHED",
+ "params": {"assigned": 20, "limit": 20},
+ "message": "License limit reached (20/20)."}
+```
+
+`MessageService.text()` tradueix `message_key` amb els `params`. Si la clau no
+té traducció, mostra `message`, el text anglès de reserva. Per afegir-ne un de
+nou: la clau i el text anglès a `server/app/messages.py`, i la traducció als tres
+fitxers d'idioma, amb els paràmetres en la sintaxi `{{param}}`.
+
+### La prova que ho lliga tot
+
+`server/tests/test_i18n.py` comprova, entre altres coses, que tots els idiomes
+tenen les mateixes claus, que cada clau del servidor és traduïda amb els mateixos
+paràmetres, que cada text de plantilla i cada `_sys_` del codi és al diccionari,
+i que `ngx_tool_dict.json` quadra amb els fitxers. Si oblideu un dels passos
+anteriors, falla.
+
+### Idioma de l'usuari
+
+`LanguageService` el tria així: el desat amb el selector, si no el del navegador,
+i si no l'anglès. Quan hi hagi el mòdul d'usuaris, la seva preferència s'haurà
+d'afegir allà, per davant de les altres.

@@ -104,8 +104,11 @@ programa només atén dispositius que ell mateix ha vinculat.
 **Servidor**, sense navegador. Ràpides:
 
 ```bash
-cd server && python tests/test_enroll_delete.py
+cd server && python -m unittest discover -s tests -v
 ```
+
+Inclou `test_i18n.py`, que comprova que les traduccions del frontend quadren amb
+els missatges del servidor.
 
 **De punta a punta**, amb servidor real i navegador. Més lentes, però són les
 úniques que veuen el comportament de la pantalla:

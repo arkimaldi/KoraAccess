@@ -1,39 +1,40 @@
 <section class="panel">
   <div class="panel-head">
-    <h2>Terminals</h2>
+    <h2>{{ 'Terminals' | translate }}</h2>
     <div class="head-right">
       <span class="license"
             [class.license-full]="license.assigned >= license.limit">
-        Assignats {{ license.assigned }} / {{ license.limit }}
+        {{ 'Assigned' | translate }} {{ license.assigned }} / {{ license.limit }}
       </span>
       <button class="btn" (click)="refresh(true)" [disabled]="loading">
-        {{ loading ? 'Explorant…' : 'Explorar ara' }}
+        <ng-container *ngIf="loading">{{ 'Scanning…' | translate }}</ng-container>
+        <ng-container *ngIf="!loading">{{ 'Scan now' | translate }}</ng-container>
       </button>
     </div>
   </div>
 
   <p class="server-url" *ngIf="serverUrl">
-    Els terminals es vinculen a <code>{{ serverUrl }}</code>
+    {{ 'Terminals are linked to' | translate }} <code>{{ serverUrl }}</code>
   </p>
 
-  <div class="alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="alert" *ngIf="error">{{ messages.text(error) }}</div>
 
   <div class="initial-loading" *ngIf="initialLoading">
     <div class="spinner" aria-hidden="true"></div>
-    <span>Cercant terminals a la xarxa…</span>
+    <span>{{ 'Searching for terminals on the network…' | translate }}</span>
   </div>
 
   <table class="grid" *ngIf="!initialLoading">
     <thead>
       <tr>
-        <th>Descripció</th>
+        <th>{{ 'Description' | translate }}</th>
         <th>EUI64</th>
-        <th>Model / FW</th>
+        <th>{{ 'Model / FW' | translate }}</th>
         <th>IP</th>
-        <th>Estat</th>
-        <th>Connexió</th>
-        <th>Porta</th>
-        <th class="col-actions">Accions</th>
+        <th>{{ 'Status' | translate }}</th>
+        <th>{{ 'Connection' | translate }}</th>
+        <th>{{ 'Door' | translate }}</th>
+        <th class="col-actions">{{ 'Actions' | translate }}</th>
       </tr>
     </thead>
     <tbody>
@@ -48,13 +49,13 @@
                    (keydown)="onEditKey($event)"
                    (blur)="cancelEdit()"
                    (click)="$event.stopPropagation()"
-                   placeholder="Descripció del terminal">
-            <div class="desc-hint">Enter per desar · Esc per cancel·lar</div>
+                   placeholder="{{ 'Terminal description' | translate }}">
+            <div class="desc-hint">{{ 'Enter to save · Esc to cancel' | translate }}</div>
           </ng-container>
           <ng-template #showDesc>
             <ng-container *ngIf="t.can_edit_description; else plainDesc">
               <span class="desc-link" *ngIf="t.description">{{ t.description }}</span>
-              <span class="desc-link desc-empty" *ngIf="!t.description">Afegir descripció</span>
+              <span class="desc-link desc-empty" *ngIf="!t.description">{{ 'Add description' | translate }}</span>
             </ng-container>
             <ng-template #plainDesc>{{ t.description || '—' }}</ng-template>
           </ng-template>
@@ -68,22 +69,26 @@
         <td class="mono">{{ t.ip_address || '—' }}</td>
         <td>
           <span [class]="labelClass(t)">{{ t.label }}</span>
-          <div class="warn" *ngFor="let w of t.warnings">{{ w }}</div>
+          <div class="warn" *ngFor="let w of t.warnings">{{ messages.text(w) }}</div>
         </td>
-        <td><span [class]="linkClass(t)">{{ linkText(t) }}</span></td>
+        <td>
+          <span [class]="linkClass(t)">
+            <ng-container *ngIf="t.link">{{ linkKey(t) | translate }}</ng-container>
+            <ng-container *ngIf="!t.link">—</ng-container>
+          </span>
+        </td>
         <td>{{ t.portal_name || '—' }}</td>
         <td class="col-actions">
-          <button class="btn btn-primary" *ngIf="t.can_link" (click)="link(t)">Vincular</button>
-          <button class="btn" *ngIf="t.can_assign" (click)="assign(t)">Assignar a porta</button>
-          <button class="btn" *ngIf="t.is_assigned" (click)="unassign(t)">Desassignar</button>
-          <button class="btn" *ngIf="t.can_release" (click)="release(t)">Alliberar</button>
-          <button class="btn btn-danger" *ngIf="t.can_delete" (click)="remove(t)">Esborrar registre</button>
+          <button class="btn btn-primary" *ngIf="t.can_link" (click)="link(t)">{{ 'Link' | translate }}</button>
+          <button class="btn" *ngIf="t.can_assign" (click)="assign(t)">{{ 'Assign to door' | translate }}</button>
+          <button class="btn" *ngIf="t.is_assigned" (click)="unassign(t)">{{ 'Unassign' | translate }}</button>
+          <button class="btn" *ngIf="t.can_release" (click)="release(t)">{{ 'Release' | translate }}</button>
+          <button class="btn btn-danger" *ngIf="t.can_delete" (click)="remove(t)">{{ 'Delete record' | translate }}</button>
         </td>
       </tr>
       <tr *ngIf="terminals.length === 0">
         <td colspan="8" class="empty">
-          Cap terminal. Comproveu que els dispositius són a la mateixa xarxa
-          i premeu «Explorar ara».
+          {{ 'No terminals found. Check that the devices are on the same network and scan again.' | translate }}
         </td>
       </tr>
     </tbody>

@@ -13,6 +13,17 @@ export type TerminalLabel =
   | 'FOREIGN'
   | 'DELETE_PENDING';
 
+/**
+ * Missatge del servidor, amb la forma comuna de server/app/messages.py.
+ * Es tradueix al frontend a partir de message_key; message és el text anglès
+ * de reserva.
+ */
+export interface ApiMessage {
+  message_key: string;
+  params: Record<string, unknown>;
+  message: string;
+}
+
 /** Estat de connexió, independent del cicle de vida. */
 export type LinkState = 'online' | 'lost' | 'severe_lost' | 'offline' | null;
 
@@ -31,7 +42,7 @@ export interface Terminal {
   portal_name: string | null;
   is_assigned: boolean;
   seen_in_discovery: boolean;
-  warnings: string[];
+  warnings: ApiMessage[];
   can_assign: boolean;
   can_release: boolean;
   can_delete: boolean;

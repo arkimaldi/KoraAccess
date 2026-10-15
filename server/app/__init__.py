@@ -32,6 +32,7 @@ def create_app(config_name='dev', start_background=True):
     from app.api.terminals import terminals_bp
     app.register_blueprint(cloud_event_bp)
     app.register_blueprint(terminals_bp)
+    _register_error_handlers(app)
 
     discovery = MgrDiscovery(
         port=app.config['DISCOVERY_PORT'],
@@ -81,6 +82,28 @@ def _upgrade_database(app):
     except Exception as e:
         logging.error('No s\'ha pogut actualitzar l\'esquema: %s', e)
         raise
+
+
+def _register_error_handlers(app):
+    """
+    Tota resposta d'error de /api/ té la forma comuna de messages.py, també la
+    d'un error inesperat. /v1/Cloud/Event no hi entra: és el protocol dels
+    terminals i té el seu propi contracte.
+    """
+    from flask import request
+    from werkzeug.exceptions import HTTPException
+    from app.messages import AppError, Msg
+
+    @app.errorhandler(AppError)
+    def _app_error(e):
+        return e.response()
+
+    @app.errorhandler(Exception)
+    def _unexpected(e):
+        if isinstance(e, HTTPException) or not request.path.startswith('/api/'):
+            return e
+        logging.exception('Unexpected error on %s', request.path)
+        return AppError(Msg.INTERNAL_ERROR, 500).response()
 
 
 def _start_background_tasks(app, discovery):

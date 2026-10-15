@@ -7,3 +7,6 @@ body { margin:0; background:#f5f6f8; color:#111827;
 .topbar h1 { margin:0; font-size:19px; font-weight:600; }
 .topbar .subtitle { font-size:13px; color:#9ca3af; }
 main { padding:24px; max-width:1280px; margin:0 auto; }
+
+.lang-select { margin-left:auto; background:#374151; color:#fff; border:1px solid #4b5563;
+               border-radius:6px; padding:4px 8px; font-size:13px; cursor:pointer; }
