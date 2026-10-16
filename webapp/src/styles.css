@@ -1,21 +1,47 @@
-:root { color-scheme: light; }
-* { box-sizing: border-box; }
-body { margin:0; background:#f5f6f8; color:#111827;
-       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-.topbar { display:flex; align-items:center; gap:12px; padding:16px 24px;
-          background:#1f2937; color:#fff; }
-.topbar h1 { margin:0; font-size:19px; font-weight:600; }
-.topbar .subtitle { font-size:13px; color:#9ca3af; }
-main { padding:24px; max-width:1280px; margin:0 auto; }
+/* Bootstrap 5.3 es carrega abans que aquest fitxer (angular.json). Aquí només
+   hi ha el que és propi de KoraAccess. */
 
-.topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
-.user-name { font-size:13px; color:#d1d5db; }
-.topbar-btn { background:transparent; color:#d1d5db; border:1px solid #4b5563; border-radius:6px;
-              padding:4px 9px; font-size:13px; cursor:pointer; }
-.topbar-btn:hover { color:#fff; border-color:#9ca3af; }
-.app-loading { display:flex; justify-content:center; padding:64px; }
-.spinner { width:22px; height:22px; border:3px solid #e5e7eb; border-top-color:#1d4ed8;
-           border-radius:50%; animation:kora-spin .8s linear infinite; }
-@keyframes kora-spin { to { transform:rotate(360deg); } }
-.lang-select { background:#374151; color:#fff; border:1px solid #4b5563;
-               border-radius:6px; padding:4px 8px; font-size:13px; cursor:pointer; }
+body { background:#f5f6f8; }
+
+/* --- Modals ---------------------------------------------------------------
+   Copiat de KapriCloudWebManager (src/styles.css), que és el que fa servir el
+   seu ModalService. Els components de modal són a src/app/shared/modals. */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-y: auto;
+    z-index: 1000;
+}
+.modal-content {
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+/* Amplada dels modals de KoraAccess.
+   Les parts del modal de Bootstrap (.modal-header, -body, -footer) prenen el
+   padding de variables que Bootstrap defineix a l'element .modal. El patró del
+   ModalService no fa servir aquest element, així que es defineixen aquí; si no,
+   el contingut queda enganxat a les vores. */
+.kora-modal {
+    width: 480px;
+    max-width: calc(100vw - 32px);
+    --bs-modal-padding: 1rem;
+    --bs-modal-header-padding: 1rem 1rem;
+    --bs-modal-header-border-color: var(--bs-border-color);
+    --bs-modal-header-border-width: var(--bs-border-width);
+    --bs-modal-footer-gap: .5rem;
+    --bs-modal-footer-border-color: var(--bs-border-color);
+    --bs-modal-footer-border-width: var(--bs-border-width);
+    --bs-modal-inner-border-radius: calc(var(--bs-border-radius-lg) - var(--bs-border-width));
+    --bs-modal-title-line-height: 1.5;
+    border-radius: var(--bs-border-radius-lg);
+}

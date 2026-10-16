@@ -65,6 +65,17 @@ class Msg:
     PASSWORD_SAME_AS_CURRENT = 'MSG_PASSWORD_SAME_AS_CURRENT'
     LANGUAGE_UNSUPPORTED = 'MSG_LANGUAGE_UNSUPPORTED'
 
+    # -- gestió d'usuaris
+    FORBIDDEN = 'MSG_FORBIDDEN'
+    NOT_FOUND = 'MSG_NOT_FOUND'
+    USER_UNKNOWN = 'MSG_USER_UNKNOWN'
+    USERNAME_INVALID = 'MSG_USERNAME_INVALID'
+    USERNAME_TAKEN = 'MSG_USERNAME_TAKEN'
+    ROLE_INVALID = 'MSG_ROLE_INVALID'
+    FULL_NAME_TOO_LONG = 'MSG_FULL_NAME_TOO_LONG'
+    LAST_ADMIN = 'MSG_LAST_ADMIN'
+    CANNOT_MODIFY_SELF = 'MSG_CANNOT_MODIFY_SELF'
+
     # -- avisos de la pantalla de Terminals
     WARN_RESET_EXTERNALLY = 'MSG_WARN_RESET_EXTERNALLY'
     WARN_POINTS_ELSEWHERE = 'MSG_WARN_POINTS_ELSEWHERE'
@@ -105,6 +116,17 @@ MESSAGES = {
     Msg.PASSWORD_TOO_LONG: 'The password cannot exceed {max} characters.',
     Msg.PASSWORD_SAME_AS_CURRENT: 'The new password must be different from the current one.',
     Msg.LANGUAGE_UNSUPPORTED: 'Unsupported language.',
+
+    Msg.FORBIDDEN: 'You do not have permission to perform this action.',
+    Msg.NOT_FOUND: 'Not found.',
+    Msg.USER_UNKNOWN: 'Unknown user.',
+    Msg.USERNAME_INVALID: ('The username must have between {min} and {max} characters, using only '
+                           'lowercase letters, digits, dots, hyphens and underscores.'),
+    Msg.USERNAME_TAKEN: 'The username {username} is already in use.',
+    Msg.ROLE_INVALID: 'Unknown role.',
+    Msg.FULL_NAME_TOO_LONG: 'The full name cannot exceed {max} characters.',
+    Msg.LAST_ADMIN: 'There must always be at least one active administrator.',
+    Msg.CANNOT_MODIFY_SELF: 'You cannot deactivate yourself or remove your own administrator role.',
 
     Msg.WARN_RESET_EXTERNALLY: 'The device has been reset externally: its record must be deleted.',
     Msg.WARN_POINTS_ELSEWHERE: 'The device now points to another server: a physical reset is required.',

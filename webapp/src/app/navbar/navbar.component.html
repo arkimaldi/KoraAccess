@@ -1,0 +1,35 @@
+<nav class="navbar navbar-expand navbar-dark kora-navbar">
+  <div class="container-fluid">
+    <a class="navbar-brand" routerLink="/terminals">KoraAccess</a>
+
+    <ul class="navbar-nav me-auto">
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/terminals" routerLinkActive="active">{{ 'Terminals' | translate }}</a>
+      </li>
+      <!-- Al servidor, totes les rutes d'usuaris requereixen el perfil d'administrador. -->
+      <li class="nav-item" *ngIf="auth.user()?.role === 'admin'">
+        <a class="nav-link" routerLink="/users" routerLinkActive="active">{{ 'Users' | translate }}</a>
+      </li>
+    </ul>
+
+    <div class="dropdown" *ngIf="auth.user() as user">
+      <button class="avatar" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+              attr.aria-label="{{ 'Account' | translate }}">{{ initials() }}</button>
+      <ul class="dropdown-menu dropdown-menu-end avatar-menu">
+        <li class="px-3 py-2">
+          <div class="fw-semibold">{{ user.full_name || user.username }}</div>
+          <div class="small text-secondary">{{ user.username }} · {{ '_sys_role_' + user.role | translate }}</div>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header">{{ 'Language' | translate }}</h6></li>
+        <li *ngFor="let l of language.supportedLanguages">
+          <button class="dropdown-item" type="button" [class.active]="l === language.getLanguage()"
+                  [attr.data-lang]="l" (click)="setLanguage(l)">{{ language.languageNames[l] }}</button>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" routerLink="/password">{{ 'Change password' | translate }}</a></li>
+        <li><button class="dropdown-item" type="button" data-logout (click)="auth.logout()">{{ 'Log out' | translate }}</button></li>
+      </ul>
+    </div>
+  </div>
+</nav>

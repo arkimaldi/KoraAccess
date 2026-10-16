@@ -28,6 +28,13 @@ LANGUAGES = ('en', 'ca', 'es')
 # La mateixa expressió que fa servir ngx-extract.js per trobar les claus.
 EXTRACT_RE = re.compile(r"""{{\s*['"`]([^'"`]+)['"`]?\s*\| translate\s*}}""")
 SYS_RE = re.compile(r"""['"`](_sys_\w+)""")
+# Claus passades des del codi als modals: titleKey: '...', textKey: '...', etc.
+CODE_KEY_RE = re.compile(r"""\b\w*Key\s*:\s*['"`]([^'"`]+)['"`]""")
+# Claus _sys_ construïdes a partir d'un prefix: '_sys_link_' + estat, '_sys_role_' + perfil.
+DYNAMIC_SYS_KEYS = {
+    '_sys_link_': ('online', 'lost', 'severe_lost', 'offline'),
+    '_sys_role_': ('admin', 'operator'),
+}
 PY_PARAM_RE = re.compile(r'(?<!\{)\{(\w+)\}(?!\})')
 NGX_PARAM_RE = re.compile(r'\{\{\s*(\w+)\s*\}\}')
 
@@ -108,18 +115,35 @@ class I18nTest(unittest.TestCase):
         """
         for name, content in source_files():
             for key in SYS_RE.findall(content):
-                if key == '_sys_link_':   # prefix d'una clau dinàmica, vegeu sota
+                if key in DYNAMIC_SYS_KEYS:   # prefix d'una clau dinàmica, vegeu sota
                     continue
                 with self.subTest(file=name, key=key):
                     for lang in LANGUAGES:
                         self.assertIn(key, self.dicts[lang])
 
-    def test_dynamic_link_keys_are_translated(self):
-        """linkKey() construeix _sys_link_<estat>: cal una clau per a cada estat."""
-        for state in ('online', 'lost', 'severe_lost', 'offline'):
-            for lang in LANGUAGES:
-                with self.subTest(state=state, lang=lang):
-                    self.assertIn(f'_sys_link_{state}', self.dicts[lang])
+    def test_dynamic_sys_keys_are_translated(self):
+        """'_sys_link_' + estat i '_sys_role_' + perfil: cal una clau per a cada valor."""
+        for prefix, values in DYNAMIC_SYS_KEYS.items():
+            for value in values:
+                for lang in LANGUAGES:
+                    with self.subTest(key=prefix + value, lang=lang):
+                        self.assertIn(prefix + value, self.dicts[lang])
+
+    def test_keys_passed_from_code_are_sys_or_msg(self):
+        """
+        Una clau que es passa des del codi (titleKey, textKey...) no la troba
+        ngx-extract. Si no és _sys_ ni MSG_, el procediment de la casa no la
+        restaura després d'extreure, i desapareixeria d'en.json en silenci.
+        """
+        for name, content in source_files():
+            if not name.endswith('.ts'):
+                continue
+            for key in CODE_KEY_RE.findall(content):
+                with self.subTest(file=name, key=key):
+                    self.assertTrue(key.startswith(('_sys_', 'MSG_')),
+                                    f'{key!r} es passa des del codi: ha de ser una clau _sys_')
+                    for lang in LANGUAGES:
+                        self.assertIn(key, self.dicts[lang])
 
     def test_master_dictionary_matches_language_files(self):
         """ngx_tool_dict.json ha de quadrar amb els fitxers d'idioma."""

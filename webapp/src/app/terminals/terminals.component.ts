@@ -4,11 +4,14 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription, timer } from 'rxjs';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { TerminalsService } from '../services/terminals.service';
 import { ApiMessage, LicenseInfo, Terminal } from '../models/terminal.model';
 import { MessageService } from '../services/message.service';
+import { ModalService } from '../services/modal.service';
+import { ModalConfirmComponent, ConfirmModalData } from '../shared/modals/modal-confirm.component';
+import { ModalPromptComponent, PromptModalData } from '../shared/modals/modal-prompt.component';
 import { AutofocusDirective } from '../shared/autofocus.directive';
 
 /**
@@ -60,6 +63,9 @@ export class TerminalsComponent implements OnInit, OnDestroy {
 
   /** device_id de la fila que s'està editant, o null. */
   editingId: string | null = null;
+
+  /** Cert mentre hi ha un modal d'aquesta pantalla obert. */
+  private modalOpen = false;
   editValue = '';
 
   private listTimer?: Subscription;
@@ -67,8 +73,8 @@ export class TerminalsComponent implements OnInit, OnDestroy {
   private lastScanAt = 0;
 
   constructor(private service: TerminalsService,
-              private translate: TranslateService,
-              public messages: MessageService) {}
+              public messages: MessageService,
+              private modals: ModalService) {}
 
   ngOnInit(): void {
     this.initialLoad();
@@ -109,7 +115,7 @@ export class TerminalsComponent implements OnInit, OnDestroy {
     this.listTimer = timer(period).subscribe(() => {
       // Mentre s'edita una descripció no es refresca: el valor de la base de
       // dades sobreescriuria el que l'usuari està escrivint.
-      if (this.editingId !== null) {
+      if (this.editingId !== null || this.modalOpen) {
         this.scheduleNext();
         return;
       }
@@ -193,17 +199,15 @@ export class TerminalsComponent implements OnInit, OnDestroy {
 
   // --- accions ------------------------------------------------------
   link(t: Terminal): void {
-    const description = window.prompt(this.translate.instant('_sys_promptTerminalDescription'),
-                                      t.description || '');
-    if (description === null) { return; }
-    this.run(this.service.link(t.eui64, description));
+    this.prompt({ titleKey: '_sys_actionLink', labelKey: '_sys_terminalDescription', value: t.description || '',
+                  maxLength: 120 }, (description) => this.run(this.service.link(t.eui64, description)));
   }
 
   assign(t: Terminal): void {
     if (!t.device_id) { return; }
-    const portal = window.prompt(this.translate.instant('_sys_promptDoorName'), '');
-    if (portal === null) { return; }
-    this.run(this.service.assign(t.device_id, portal));
+    const deviceId = t.device_id;
+    this.prompt({ titleKey: '_sys_actionAssignToDoor', labelKey: '_sys_doorName', maxLength: 120 },
+                (portal) => this.run(this.service.assign(deviceId, portal)));
   }
 
   unassign(t: Terminal): void {
@@ -213,23 +217,57 @@ export class TerminalsComponent implements OnInit, OnDestroy {
 
   release(t: Terminal): void {
     if (!t.device_id) { return; }
-    if (!window.confirm(this.translate.instant('_sys_confirmRelease', { eui64: t.eui64 }))) { return; }
-    this.run(this.service.release(t.device_id));
+    const deviceId = t.device_id;
+    this.confirm({ titleKey: '_sys_actionRelease', textKey: '_sys_confirmRelease', params: { eui64: t.eui64 },
+                   confirmKey: '_sys_actionRelease', danger: true },
+                 () => this.run(this.service.release(deviceId)));
   }
 
   remove(t: Terminal): void {
     if (!t.device_id) { return; }
-    if (!window.confirm(this.translate.instant('_sys_confirmDeleteRecord', { eui64: t.eui64 }))) { return; }
-    this.run(this.service.remove(t.device_id));
+    const deviceId = t.device_id;
+    this.confirm({ titleKey: '_sys_actionDeleteRecord', textKey: '_sys_confirmDeleteRecord', params: { eui64: t.eui64 },
+                   confirmKey: '_sys_actionDeleteRecord', danger: true },
+                 () => this.run(this.service.remove(deviceId)));
+  }
+
+  /**
+   * Mentre hi ha un modal obert, el polling es comporta com en edició: no
+   * refresca, perquè la fila sobre la qual s'actua no canviï per sota.
+   */
+  private prompt(data: PromptModalData, onAccept: (value: string) => void): void {
+    this.modalOpen = true;
+    this.modals.openModal(ModalPromptComponent.modalMe, data).subscribe((value) => {
+      this.modalOpen = false;
+      if (value !== undefined) { onAccept((value ?? '') as string); }
+    });
+  }
+
+  private confirm(data: ConfirmModalData, onAccept: () => void): void {
+    this.modalOpen = true;
+    this.modals.openModal(ModalConfirmComponent.modalMe, data).subscribe((ok) => {
+      this.modalOpen = false;
+      if (ok) { onAccept(); }
+    });
   }
 
   // --- presentació --------------------------------------------------
+  private static readonly LABEL_CLASS: Record<string, string> = {
+    FREE: 'text-bg-success', LINKED: 'text-bg-warning', ENROLLED: 'text-bg-primary',
+    ASSIGNED: 'text-bg-info', FOREIGN: 'text-bg-secondary', DELETE_PENDING: 'text-bg-danger',
+  };
+
   labelClass(t: Terminal): string {
-    return 'badge badge-' + t.label.toLowerCase();
+    return `badge label-${t.label.toLowerCase()} ${TerminalsComponent.LABEL_CLASS[t.label] ?? 'text-bg-light'}`;
   }
 
+  private static readonly LINK_CLASS: Record<string, string> = {
+    online: 'text-success', lost: 'text-warning-emphasis', severe_lost: 'text-danger fw-semibold',
+    offline: 'text-secondary',
+  };
+
   linkClass(t: Terminal): string {
-    return t.link ? 'link link-' + t.link : 'link link-unknown';
+    return t.link ? (TerminalsComponent.LINK_CLASS[t.link] ?? '') : 'text-body-tertiary';
   }
 
   /** Clau de traducció de l'estat de connexió. */

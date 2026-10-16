@@ -1,6 +1,9 @@
 /** (C) 2026 Kimaldi Electronics,s.l. Tots els drets reservats. */
 
 import { Injectable } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeCa from '@angular/common/locales/ca';
+import localeEs from '@angular/common/locales/es';
 import { TranslateService } from '@ngx-translate/core';
 
 /** Clau on es desa l'idioma triat al navegador. */
@@ -32,7 +35,11 @@ export class LanguageService {
     es: 'Español'
   };
 
-  constructor(private translateService: TranslateService) {}
+  constructor(private translateService: TranslateService) {
+    // Perquè les dates es mostrin en el format de cada idioma (l'anglès ve de sèrie).
+    registerLocaleData(localeCa, 'ca');
+    registerLocaleData(localeEs, 'es');
+  }
 
   init(): void {
     this.translateService.setDefaultLang(this.supportedLanguages[0]);

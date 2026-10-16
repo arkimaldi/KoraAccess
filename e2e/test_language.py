@@ -46,10 +46,12 @@ class LanguageSelectorTest(E2ETestCase):
     SEED = [{'eui64': '00000000000000E2', 'description': '', 'status': 'enrolled'}]
 
     def test_selector_changes_and_persists(self):
+        """Amb la sessió iniciada, l'idioma es tria al menú de l'avatar i es desa a l'usuari."""
         self.open_terminals()
         self.assertEqual(header(self.page).lower(), 'description')
 
-        self.page.select_option('select.lang-select', 'es')
+        self.open_avatar_menu()
+        self.page.click('kora-navbar [data-lang=es]')
         self.page.wait_for_timeout(500)
         self.assertEqual(header(self.page).lower(), 'descripción')
         self.assertEqual(self.desc_cell('00000000000000E2').inner_text().strip(), 'Añadir descripción')
@@ -58,7 +60,8 @@ class LanguageSelectorTest(E2ETestCase):
         self.page.wait_for_selector('table.grid', timeout=10000)
         self.page.wait_for_timeout(300)
         self.assertEqual(header(self.page).lower(), 'descripción')
-        self.assertEqual(self.page.locator('select.lang-select').input_value(), 'es')
+        self.open_avatar_menu()
+        self.assertEqual(self.page.locator('kora-navbar [data-lang].active').get_attribute('data-lang'), 'es')
 
 
 class ServerMessagesTranslationTest(E2ETestCase):
@@ -91,15 +94,16 @@ class ServerMessagesTranslationTest(E2ETestCase):
         device_id = next(t['device_id'] for t in terminals if t['eui64'] == '00000000000000E4')
         self.page.request.delete(f'{BASE_URL}/api/terminals/{device_id}', headers=CSRF_HEADERS)
 
-        dialogs = []
-        self.page.once('dialog', lambda d: (dialogs.append(d.message), d.accept()))
-        self.row('00000000000000E4').locator('button.btn-danger').click()
-        self.page.wait_for_timeout(1000)
+        self.row('00000000000000E4').locator('[data-action=delete]').click()
+        self.page.wait_for_selector('kora-modal-confirm .modal-content', timeout=3000)
 
-        # El diàleg de confirmació, traduït i amb el paràmetre interpolat
-        self.assertEqual(dialogs, ['Esborrar el registre de 00000000000000E4?'])
+        # La confirmació, traduïda i amb el paràmetre interpolat
+        self.assertEqual(self.page.locator('kora-modal-confirm .modal-body').inner_text().strip(),
+                         'Esborrar el registre de 00000000000000E4?')
+        self.page.click('kora-modal-confirm [data-modal-confirm]')
+        self.page.wait_for_timeout(1000)
         # L'error del servidor, traduït
-        self.assertEqual(self.page.locator('.alert').inner_text().strip(), 'Dispositiu desconegut.')
+        self.assertEqual(self.page.locator('.page-error').inner_text().strip(), 'Dispositiu desconegut.')
 
 
 if __name__ == '__main__':

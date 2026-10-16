@@ -33,7 +33,9 @@ def create_app(config_name='dev', start_background=True):
     from app.api.auth import auth_bp
     from app.api.cloud_event import cloud_event_bp
     from app.api.terminals import terminals_bp
+    from app.api.users import users_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(users_bp)
     app.register_blueprint(cloud_event_bp)
     app.register_blueprint(terminals_bp)
     _register_error_handlers(app)
@@ -55,6 +57,9 @@ def create_app(config_name='dev', start_background=True):
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve_spa(path):
+        if path.startswith('api/'):
+            from app.messages import AppError, Msg
+            raise AppError(Msg.NOT_FOUND, 404)
         full = os.path.join(STATIC_DIR, path)
         if path and os.path.isfile(full):
             return send_from_directory(STATIC_DIR, path)

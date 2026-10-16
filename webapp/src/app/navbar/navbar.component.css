@@ -1,0 +1,6 @@
+.kora-navbar { background:#1f2937; padding-top:.6rem; padding-bottom:.6rem; }
+.navbar-brand { font-weight:600; }
+.avatar { width:36px; height:36px; border-radius:50%; border:none; background:#3b5bdb; color:#fff;
+          font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+.avatar:hover, .avatar[aria-expanded="true"] { background:#4c6ef5; }
+.avatar-menu { min-width:240px; }

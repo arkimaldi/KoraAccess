@@ -9,6 +9,7 @@ import { AuthService } from './auth.service';
 import { MessageService } from '../services/message.service';
 import { ApiMessage } from '../models/terminal.model';
 import { AutofocusDirective } from '../shared/autofocus.directive';
+import { LanguageService } from '../services/language.service';
 
 @Component({
   selector: 'kora-login',
@@ -29,7 +30,12 @@ export class LoginComponent {
     message_key: 'MSG_AUTH_REQUIRED', params: {}, message: 'Your session has expired. Please log in again.'
   };
 
-  constructor(public auth: AuthService, public messages: MessageService) {}
+  constructor(public auth: AuthService, public messages: MessageService,
+              public language: LanguageService) {}
+
+  onLanguage(event: Event): void {
+    this.language.updateLanguage((event.target as HTMLSelectElement).value);
+  }
 
   submit(): void {
     if (this.busy || !this.username || !this.password) { return; }

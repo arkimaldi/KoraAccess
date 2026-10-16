@@ -1,13 +1,28 @@
 {
-    "Access control": {
-        "ca.json": "Control d'accessos",
-        "en.json": "Access control",
-        "es.json": "Control de accesos"
+    "A temporary password will be generated. The user will have to change it when signing in.": {
+        "ca.json": "Es generarà una contrasenya temporal. L'usuari l'haurà de canviar en iniciar la sessió.",
+        "en.json": "A temporary password will be generated. The user will have to change it when signing in.",
+        "es.json": "Se generará una contraseña temporal. El usuario deberá cambiarla al iniciar sesión."
+    },
+    "Account": {
+        "ca.json": "Compte",
+        "en.json": "Account",
+        "es.json": "Cuenta"
     },
     "Actions": {
         "ca.json": "Accions",
         "en.json": "Actions",
         "es.json": "Acciones"
+    },
+    "Activate": {
+        "ca.json": "Activa",
+        "en.json": "Activate",
+        "es.json": "Activar"
+    },
+    "Active": {
+        "ca.json": "Actiu",
+        "en.json": "Active",
+        "es.json": "Activo"
     },
     "Add description": {
         "ca.json": "Afegir descripció",
@@ -34,6 +49,11 @@
         "en.json": "Change password",
         "es.json": "Cambiar contraseña"
     },
+    "Close sessions": {
+        "ca.json": "Tanca les sessions",
+        "en.json": "Close sessions",
+        "es.json": "Cerrar sesiones"
+    },
     "Confirm new password": {
         "ca.json": "Confirma la contrasenya nova",
         "en.json": "Confirm new password",
@@ -44,10 +64,30 @@
         "en.json": "Connection",
         "es.json": "Conexión"
     },
+    "Copied": {
+        "ca.json": "Copiada",
+        "en.json": "Copied",
+        "es.json": "Copiada"
+    },
+    "Copy": {
+        "ca.json": "Copia",
+        "en.json": "Copy",
+        "es.json": "Copiar"
+    },
+    "Create": {
+        "ca.json": "Crea",
+        "en.json": "Create",
+        "es.json": "Crear"
+    },
     "Current password": {
         "ca.json": "Contrasenya actual",
         "en.json": "Current password",
         "es.json": "Contraseña actual"
+    },
+    "Deactivate": {
+        "ca.json": "Desactiva",
+        "en.json": "Deactivate",
+        "es.json": "Desactivar"
     },
     "Delete record": {
         "ca.json": "Esborrar registre",
@@ -59,15 +99,50 @@
         "en.json": "Description",
         "es.json": "Descripción"
     },
+    "Done": {
+        "ca.json": "Fet",
+        "en.json": "Done",
+        "es.json": "Hecho"
+    },
     "Door": {
         "ca.json": "Porta",
         "en.json": "Door",
         "es.json": "Puerta"
     },
+    "Edit": {
+        "ca.json": "Edita",
+        "en.json": "Edit",
+        "es.json": "Editar"
+    },
+    "Edit user": {
+        "ca.json": "Edita l'usuari",
+        "en.json": "Edit user",
+        "es.json": "Editar usuario"
+    },
     "Enter to save · Esc to cancel": {
         "ca.json": "Enter per desar · Esc per cancel·lar",
         "en.json": "Enter to save · Esc to cancel",
         "es.json": "Enter para guardar · Esc para cancelar"
+    },
+    "Full name": {
+        "ca.json": "Nom complet",
+        "en.json": "Full name",
+        "es.json": "Nombre completo"
+    },
+    "Inactive": {
+        "ca.json": "Inactiu",
+        "en.json": "Inactive",
+        "es.json": "Inactivo"
+    },
+    "Language": {
+        "ca.json": "Idioma",
+        "en.json": "Language",
+        "es.json": "Idioma"
+    },
+    "Last login": {
+        "ca.json": "Darrer inici de sessió",
+        "en.json": "Last login",
+        "es.json": "Último inicio de sesión"
     },
     "Link": {
         "ca.json": "Vincular",
@@ -88,6 +163,11 @@
         "ca.json": "La sessió ha caducat. Torneu a iniciar-la.",
         "en.json": "Your session has expired. Please log in again.",
         "es.json": "La sesión ha caducado. Vuelva a iniciarla."
+    },
+    "MSG_CANNOT_MODIFY_SELF": {
+        "ca.json": "No us podeu desactivar ni treure el perfil d'administrador a vós mateix.",
+        "en.json": "You cannot deactivate yourself or remove your own administrator role.",
+        "es.json": "No puede desactivarse ni quitarse el perfil de administrador a usted mismo."
     },
     "MSG_DELETE_ENROLLED_DEVICE": {
         "ca.json": "Un dispositiu enrolat s'ha d'alliberar, no esborrar.",
@@ -139,6 +219,16 @@
         "en.json": "Unknown device.",
         "es.json": "Dispositivo desconocido."
     },
+    "MSG_FORBIDDEN": {
+        "ca.json": "No teniu permís per fer aquesta acció.",
+        "en.json": "You do not have permission to perform this action.",
+        "es.json": "No tiene permiso para realizar esta acción."
+    },
+    "MSG_FULL_NAME_TOO_LONG": {
+        "ca.json": "El nom complet no pot superar {{max}} caràcters.",
+        "en.json": "The full name cannot exceed {{max}} characters.",
+        "es.json": "El nombre completo no puede superar {{max}} caracteres."
+    },
     "MSG_INTERNAL_ERROR": {
         "ca.json": "Error intern del servidor.",
         "en.json": "Internal server error.",
@@ -148,6 +238,11 @@
         "ca.json": "Idioma no suportat.",
         "en.json": "Unsupported language.",
         "es.json": "Idioma no soportado."
+    },
+    "MSG_LAST_ADMIN": {
+        "ca.json": "Sempre hi ha d'haver almenys un administrador actiu.",
+        "en.json": "There must always be at least one active administrator.",
+        "es.json": "Siempre debe haber al menos un administrador activo."
     },
     "MSG_LICENSE_LIMIT_REACHED": {
         "ca.json": "Límit de llicència assolit ({{assigned}}/{{limit}}).",
@@ -168,6 +263,11 @@
         "ca.json": "Massa intents d'inici de sessió. Espereu un minut i torneu-ho a provar.",
         "en.json": "Too many login attempts. Please wait a minute and try again.",
         "es.json": "Demasiados intentos de inicio de sesión. Espere un minuto y vuelva a intentarlo."
+    },
+    "MSG_NOT_FOUND": {
+        "ca.json": "No s'ha trobat.",
+        "en.json": "Not found.",
+        "es.json": "No encontrado."
     },
     "MSG_PASSWORD_CHANGE_REQUIRED": {
         "ca.json": "Heu de canviar la contrasenya abans de continuar.",
@@ -209,6 +309,26 @@
         "en.json": "The request was rejected because a required header is missing.",
         "es.json": "Se ha rechazado la petición porque falta una cabecera obligatoria."
     },
+    "MSG_ROLE_INVALID": {
+        "ca.json": "Perfil desconegut.",
+        "en.json": "Unknown role.",
+        "es.json": "Perfil desconocido."
+    },
+    "MSG_USERNAME_INVALID": {
+        "ca.json": "El nom d'usuari ha de tenir entre {{min}} i {{max}} caràcters, i només pot contenir lletres minúscules, xifres, punts, guions i guions baixos.",
+        "en.json": "The username must have between {{min}} and {{max}} characters, using only lowercase letters, digits, dots, hyphens and underscores.",
+        "es.json": "El nombre de usuario debe tener entre {{min}} y {{max}} caracteres, y solo puede contener letras minúsculas, cifras, puntos, guiones y guiones bajos."
+    },
+    "MSG_USERNAME_TAKEN": {
+        "ca.json": "El nom d'usuari {{username}} ja està en ús.",
+        "en.json": "The username {{username}} is already in use.",
+        "es.json": "El nombre de usuario {{username}} ya está en uso."
+    },
+    "MSG_USER_UNKNOWN": {
+        "ca.json": "Usuari desconegut.",
+        "en.json": "Unknown user.",
+        "es.json": "Usuario desconocido."
+    },
     "MSG_WARN_CANNOT_REACH_SERVER": {
         "ca.json": "El dispositiu apunta a aquest servidor però no hi arriba: comproveu que resol el domini pel DNS de la instal·lació.",
         "en.json": "The device points to this server but cannot reach it: check that it resolves the domain through the local DNS.",
@@ -234,10 +354,20 @@
         "en.json": "Model / FW",
         "es.json": "Modelo / FW"
     },
+    "Never": {
+        "ca.json": "Mai",
+        "en.json": "Never",
+        "es.json": "Nunca"
+    },
     "New password": {
         "ca.json": "Contrasenya nova",
         "en.json": "New password",
         "es.json": "Contraseña nueva"
+    },
+    "New user": {
+        "ca.json": "Usuari nou",
+        "en.json": "New user",
+        "es.json": "Nuevo usuario"
     },
     "No terminals found. Check that the devices are on the same network and scan again.": {
         "ca.json": "No s'ha trobat cap terminal. Comproveu que els dispositius són a la mateixa xarxa i torneu a explorar.",
@@ -249,10 +379,30 @@
         "en.json": "Password",
         "es.json": "Contraseña"
     },
+    "Password change pending": {
+        "ca.json": "Canvi de contrasenya pendent",
+        "en.json": "Password change pending",
+        "es.json": "Cambio de contraseña pendiente"
+    },
     "Release": {
         "ca.json": "Alliberar",
         "en.json": "Release",
         "es.json": "Liberar"
+    },
+    "Reset password": {
+        "ca.json": "Restableix la contrasenya",
+        "en.json": "Reset password",
+        "es.json": "Restablecer contraseña"
+    },
+    "Role": {
+        "ca.json": "Perfil",
+        "en.json": "Role",
+        "es.json": "Perfil"
+    },
+    "Save": {
+        "ca.json": "Desa",
+        "en.json": "Save",
+        "es.json": "Guardar"
     },
     "Scan now": {
         "ca.json": "Explorar ara",
@@ -269,6 +419,11 @@
         "en.json": "Searching for terminals on the network…",
         "es.json": "Buscando terminales en la red…"
     },
+    "Sessions": {
+        "ca.json": "Sessions",
+        "en.json": "Sessions",
+        "es.json": "Sesiones"
+    },
     "Sign in": {
         "ca.json": "Inicia la sessió",
         "en.json": "Sign in",
@@ -278,6 +433,11 @@
         "ca.json": "Estat",
         "en.json": "Status",
         "es.json": "Estado"
+    },
+    "Temporary password": {
+        "ca.json": "Contrasenya temporal",
+        "en.json": "Temporary password",
+        "es.json": "Contraseña temporal"
     },
     "Terminal description": {
         "ca.json": "Descripció del terminal",
@@ -294,6 +454,16 @@
         "en.json": "Terminals are linked to",
         "es.json": "Los terminales se vinculan a"
     },
+    "The username cannot be changed.": {
+        "ca.json": "El nom d'usuari no es pot canviar.",
+        "en.json": "The username cannot be changed.",
+        "es.json": "El nombre de usuario no se puede cambiar."
+    },
+    "This password will not be shown again. Give it to the user now: they will have to change it when signing in.": {
+        "ca.json": "Aquesta contrasenya no es tornarà a mostrar. Doneu-la ara a l'usuari: l'haurà de canviar en iniciar la sessió.",
+        "en.json": "This password will not be shown again. Give it to the user now: they will have to change it when signing in.",
+        "es.json": "Esta contraseña no se volverá a mostrar. Entréguela ahora al usuario: deberá cambiarla al iniciar sesión."
+    },
     "Unassign": {
         "ca.json": "Desassignar",
         "en.json": "Unassign",
@@ -304,6 +474,71 @@
         "en.json": "Username",
         "es.json": "Nombre de usuario"
     },
+    "Users": {
+        "ca.json": "Usuaris",
+        "en.json": "Users",
+        "es.json": "Usuarios"
+    },
+    "You": {
+        "ca.json": "Vós",
+        "en.json": "You",
+        "es.json": "Usted"
+    },
+    "You cannot change your own role.": {
+        "ca.json": "No podeu canviar el vostre propi perfil.",
+        "en.json": "You cannot change your own role.",
+        "es.json": "No puede cambiar su propio perfil."
+    },
+    "_sys_actionAssignToDoor": {
+        "ca.json": "Assignar a porta",
+        "en.json": "Assign to door",
+        "es.json": "Asignar a puerta"
+    },
+    "_sys_actionCloseSessions": {
+        "ca.json": "Tanca les sessions",
+        "en.json": "Close sessions",
+        "es.json": "Cerrar sesiones"
+    },
+    "_sys_actionDeactivate": {
+        "ca.json": "Desactiva",
+        "en.json": "Deactivate",
+        "es.json": "Desactivar"
+    },
+    "_sys_actionDeleteRecord": {
+        "ca.json": "Esborrar registre",
+        "en.json": "Delete record",
+        "es.json": "Borrar registro"
+    },
+    "_sys_actionLink": {
+        "ca.json": "Vincular",
+        "en.json": "Link",
+        "es.json": "Vincular"
+    },
+    "_sys_actionRelease": {
+        "ca.json": "Alliberar",
+        "en.json": "Release",
+        "es.json": "Liberar"
+    },
+    "_sys_actionResetPassword": {
+        "ca.json": "Restableix la contrasenya",
+        "en.json": "Reset password",
+        "es.json": "Restablecer contraseña"
+    },
+    "_sys_confirm": {
+        "ca.json": "Confirma",
+        "en.json": "Confirm",
+        "es.json": "Confirmar"
+    },
+    "_sys_confirmCloseSessions": {
+        "ca.json": "Tancar totes les sessions obertes de {{username}}? Haurà de tornar a iniciar la sessió.",
+        "en.json": "Close all open sessions of {{username}}? They will have to sign in again.",
+        "es.json": "¿Cerrar todas las sesiones abiertas de {{username}}? Deberá volver a iniciar sesión."
+    },
+    "_sys_confirmDeactivateUser": {
+        "ca.json": "Desactivar {{username}}? No podrà iniciar la sessió, i se li tancaran les sessions obertes.",
+        "en.json": "Deactivate {{username}}? They will not be able to sign in, and their open sessions will be closed.",
+        "es.json": "¿Desactivar a {{username}}? No podrá iniciar sesión, y se cerrarán sus sesiones abiertas."
+    },
     "_sys_confirmDeleteRecord": {
         "ca.json": "Esborrar el registre de {{eui64}}?",
         "en.json": "Delete the record of {{eui64}}?",
@@ -313,6 +548,16 @@
         "ca.json": "Alliberar {{eui64}}? El terminal quedarà verge.",
         "en.json": "Release {{eui64}}? The terminal will be left as factory new.",
         "es.json": "¿Liberar {{eui64}}? El terminal quedará como de fábrica."
+    },
+    "_sys_confirmResetPassword": {
+        "ca.json": "Restablir la contrasenya de {{username}}? Es generarà una contrasenya temporal i se li tancaran les sessions obertes.",
+        "en.json": "Reset the password of {{username}}? A temporary password will be generated and their open sessions will be closed.",
+        "es.json": "¿Restablecer la contraseña de {{username}}? Se generará una contraseña temporal y se cerrarán sus sesiones abiertas."
+    },
+    "_sys_doorName": {
+        "ca.json": "Nom de la porta",
+        "en.json": "Door name",
+        "es.json": "Nombre de la puerta"
     },
     "_sys_link_lost": {
         "ca.json": "Perdut",
@@ -349,19 +594,34 @@
         "en.json": "The passwords do not match.",
         "es.json": "Las contraseñas no coinciden."
     },
-    "_sys_promptDoorName": {
-        "ca.json": "Nom de la porta:",
-        "en.json": "Door name:",
-        "es.json": "Nombre de la puerta:"
+    "_sys_role_admin": {
+        "ca.json": "Administrador",
+        "en.json": "Administrator",
+        "es.json": "Administrador"
     },
-    "_sys_promptTerminalDescription": {
-        "ca.json": "Descripció del terminal:",
-        "en.json": "Terminal description:",
-        "es.json": "Descripción del terminal:"
+    "_sys_role_operator": {
+        "ca.json": "Operador",
+        "en.json": "Operator",
+        "es.json": "Operador"
+    },
+    "_sys_temporaryPasswordFor": {
+        "ca.json": "Contrasenya temporal per a {{username}}:",
+        "en.json": "Temporary password for {{username}}:",
+        "es.json": "Contraseña temporal para {{username}}:"
+    },
+    "_sys_terminalDescription": {
+        "ca.json": "Descripció del terminal",
+        "en.json": "Terminal description",
+        "es.json": "Descripción del terminal"
     },
     "_sys_unexpectedError": {
         "ca.json": "Error inesperat.",
         "en.json": "Unexpected error.",
         "es.json": "Error inesperado."
+    },
+    "_sys_usernameRules": {
+        "ca.json": "Entre 2 i 64 caràcters: lletres, xifres, punts, guions i guions baixos.",
+        "en.json": "Between 2 and 64 characters: letters, digits, dots, hyphens and underscores.",
+        "es.json": "Entre 2 y 64 caracteres: letras, cifras, puntos, guiones y guiones bajos."
     }
 }

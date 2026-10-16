@@ -215,6 +215,11 @@ class E2ETestCase(unittest.TestCase):
         self.page.wait_for_selector('table.grid', timeout=10000)
         self.page.wait_for_timeout(300)
 
+    def open_avatar_menu(self):
+        """Obre el desplegable de l'avatar (Bootstrap) i espera que es vegi."""
+        self.page.click('kora-navbar button.avatar')
+        self.page.wait_for_selector('kora-navbar .dropdown-menu.show', timeout=3000)
+
     def row(self, eui64):
         """
         La fila d'un dispositiu, buscada per EUI64 cada vegada: mai per posició,

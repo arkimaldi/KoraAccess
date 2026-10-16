@@ -18,11 +18,14 @@ webapp/    Frontend Angular (obriu aquesta carpeta amb Visual Studio Code)
 
 ## Estat actual
 
-Primera iteració: **gestió de terminals**. Inclou descoberta, vinculació,
-enrolament, assignació a porta i alliberament, amb la pantalla de Terminals.
+- **Terminals**: descoberta, vinculació, enrolament, assignació a porta i
+  alliberament.
+- **Usuaris i sessions**: login, perfils d'administrador i operador, canvi de
+  contrasenya, i pantalla de gestió d'usuaris per als administradors.
+- **Idiomes**: anglès, català i castellà.
 
-Fora d'aquesta iteració: mòdul de Portes, sincronització d'usuaris, calendaris
-i logs d'accés, i el mòdul de llicència compartit amb KoraPresence.
+Encara no: mòdul de Portes, sincronització d'usuaris amb els terminals,
+calendaris, logs d'accés, i el mòdul de llicència compartit amb KoraPresence.
 
 ## Posada en marxa
 

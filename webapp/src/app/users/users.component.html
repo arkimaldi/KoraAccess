@@ -1,0 +1,74 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">{{ 'Users' | translate }}</h1>
+  <button class="btn btn-primary" type="button" data-new-user (click)="create()">{{ 'New user' | translate }}</button>
+</div>
+
+<div class="alert alert-danger py-2 page-error" *ngIf="error">{{ messages.text(error) }}</div>
+
+<div class="d-flex justify-content-center p-5" *ngIf="loading">
+  <div class="spinner-border text-primary" role="status"></div>
+</div>
+
+<div class="card" *ngIf="!loading">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 users-table">
+      <thead class="table-light">
+        <tr>
+          <th>{{ 'Username' | translate }}</th>
+          <th>{{ 'Full name' | translate }}</th>
+          <th>{{ 'Role' | translate }}</th>
+          <th>{{ 'Status' | translate }}</th>
+          <th>{{ 'Last login' | translate }}</th>
+          <th class="text-center">{{ 'Sessions' | translate }}</th>
+          <th class="text-end">{{ 'Actions' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of users; trackBy: trackById" [attr.data-username]="u.username"
+            [class.text-secondary]="!u.is_active">
+          <td class="font-monospace">
+            {{ u.username }}
+            <span class="badge text-bg-light border ms-1" *ngIf="isSelf(u)">{{ 'You' | translate }}</span>
+          </td>
+          <td>{{ u.full_name || '—' }}</td>
+          <td>{{ '_sys_role_' + u.role | translate }}</td>
+          <td>
+            <span class="badge text-bg-success" *ngIf="u.is_active">{{ 'Active' | translate }}</span>
+            <span class="badge text-bg-secondary" *ngIf="!u.is_active">{{ 'Inactive' | translate }}</span>
+            <span class="badge text-bg-warning ms-1" *ngIf="u.must_change_password">{{ 'Password change pending' | translate }}</span>
+          </td>
+          <td>
+            <ng-container *ngIf="u.last_login_dts">{{ u.last_login_dts | date:'short':undefined:language.getLanguage() }}</ng-container>
+            <ng-container *ngIf="!u.last_login_dts">{{ 'Never' | translate }}</ng-container>
+          </td>
+          <td class="text-center">{{ u.active_sessions }}</td>
+          <td class="text-end">
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                      data-bs-toggle="dropdown" aria-expanded="false" data-row-actions>
+                {{ 'Actions' | translate }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><button class="dropdown-item" type="button" data-action="edit" (click)="edit(u)">{{ 'Edit' | translate }}</button></li>
+                <li><button class="dropdown-item" type="button" data-action="reset" (click)="resetPassword(u)">{{ 'Reset password' | translate }}</button></li>
+                <li><button class="dropdown-item" type="button" data-action="close-sessions" (click)="closeSessions(u)"
+                            [disabled]="u.active_sessions === 0">{{ 'Close sessions' | translate }}</button></li>
+                <li><hr class="dropdown-divider"></li>
+                <!-- Ningú es pot desactivar a si mateix: el servidor també ho impedeix. -->
+                <li *ngIf="u.is_active && !isSelf(u)">
+                  <button class="dropdown-item text-danger" type="button" data-action="deactivate" (click)="deactivate(u)">{{ 'Deactivate' | translate }}</button>
+                </li>
+                <li *ngIf="!u.is_active">
+                  <button class="dropdown-item" type="button" data-action="activate" (click)="activate(u)">{{ 'Activate' | translate }}</button>
+                </li>
+              </ul>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<kora-modal-user-form></kora-modal-user-form>
+<kora-modal-temporary-password></kora-modal-temporary-password>

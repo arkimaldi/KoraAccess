@@ -1,20 +1,37 @@
-<div class="auth-card">
-  <h2>{{ 'Sign in' | translate }}</h2>
+<div class="auth-wrap">
+  <div class="card auth-card shadow-sm">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <div class="auth-brand">KoraAccess</div>
+          <h1 class="h5 mb-0">{{ 'Sign in' | translate }}</h1>
+        </div>
+        <!-- Sense sessió no hi ha menú d'usuari: el selector d'idioma va aquí. -->
+        <select class="form-select form-select-sm w-auto lang-select" aria-label="Language"
+                (change)="onLanguage($event)">
+          <option *ngFor="let l of language.supportedLanguages" [value]="l"
+                  [selected]="l === language.getLanguage()">{{ language.languageNames[l] }}</option>
+        </select>
+      </div>
 
-  <div class="auth-info" *ngIf="auth.sessionExpired() && !error">{{ messages.text(expiredMessage) }}</div>
-  <div class="auth-error" *ngIf="error">{{ messages.text(error) }}</div>
+      <div class="alert alert-info py-2 auth-info" *ngIf="auth.sessionExpired() && !error">{{ messages.text(expiredMessage) }}</div>
+      <div class="alert alert-danger py-2 auth-error" *ngIf="error">{{ messages.text(error) }}</div>
 
-  <form (ngSubmit)="submit()" autocomplete="on">
-    <label for="login-username">{{ 'Username' | translate }}</label>
-    <input id="login-username" name="username" type="text" autocomplete="username"
-           koraAutofocus [(ngModel)]="username" [disabled]="busy">
-
-    <label for="login-password">{{ 'Password' | translate }}</label>
-    <input id="login-password" name="password" type="password" autocomplete="current-password"
-           [(ngModel)]="password" [disabled]="busy">
-
-    <button class="btn btn-primary btn-block" type="submit" [disabled]="busy || !username || !password">
-      {{ 'Sign in' | translate }}
-    </button>
-  </form>
+      <form (ngSubmit)="submit()" autocomplete="on">
+        <div class="mb-3">
+          <label class="form-label" for="login-username">{{ 'Username' | translate }}</label>
+          <input id="login-username" name="username" type="text" class="form-control" autocomplete="username"
+                 koraAutofocus [(ngModel)]="username" [disabled]="busy">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="login-password">{{ 'Password' | translate }}</label>
+          <input id="login-password" name="password" type="password" class="form-control"
+                 autocomplete="current-password" [(ngModel)]="password" [disabled]="busy">
+        </div>
+        <button class="btn btn-primary w-100" type="submit" [disabled]="busy || !username || !password">
+          {{ 'Sign in' | translate }}
+        </button>
+      </form>
+    </div>
+  </div>
 </div>

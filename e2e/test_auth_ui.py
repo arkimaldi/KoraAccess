@@ -29,7 +29,7 @@ class LoginScreenTest(E2ETestCase):
     def test_without_session_shows_login(self):
         self.open_app()
         self.assertEqual(self.page.locator('kora-terminals').count(), 0)
-        self.assertEqual(self.page.locator('.user-name').count(), 0)
+        self.assertEqual(self.page.locator('kora-navbar').count(), 0)
         # Sense sessió prèvia no s'ha d'avisar de cap caducitat
         self.assertEqual(self.page.locator('kora-login .auth-info').count(), 0)
 
@@ -45,9 +45,12 @@ class LoginScreenTest(E2ETestCase):
         self.open_app()
         self.fill_and_submit(TEST_USER['username'].upper(), TEST_USER['password'])
         self.page.wait_for_selector('table.grid', timeout=10000)
-        self.assertEqual(self.page.locator('.user-name').inner_text().strip(), TEST_USER['full_name'])
+        # Inicials del nom complet a l'avatar, i el nom sencer dins del menú
+        self.assertEqual(self.page.locator('kora-navbar button.avatar').inner_text().strip(), 'PE')
+        self.open_avatar_menu()
+        self.assertIn(TEST_USER['full_name'], self.page.locator('kora-navbar .dropdown-menu').inner_text())
 
-        self.page.click('.topbar-btn:has-text("Log out")')
+        self.page.click('kora-navbar [data-logout]')
         self.page.wait_for_selector('kora-login', timeout=5000)
         self.assertEqual(self.page.locator('kora-terminals').count(), 0)
         # I la sessió s'ha tancat de debò al servidor
@@ -99,9 +102,13 @@ class ForcedPasswordChangeTest(E2ETestCase):
 
 class VoluntaryPasswordChangeTest(E2ETestCase):
 
+    def open_change_password(self):
+        self.open_avatar_menu()
+        self.page.click('kora-navbar a[href="/password"]')
+
     def test_cancel_returns_to_terminals(self):
         self.open_terminals()
-        self.page.click('.topbar-btn:has-text("Change password")')
+        self.open_change_password()
         self.page.wait_for_selector('kora-change-password', timeout=5000)
         self.assertEqual(self.page.locator('kora-terminals').count(), 0)
         self.page.click('kora-change-password button:has-text("Cancel")')
@@ -109,7 +116,7 @@ class VoluntaryPasswordChangeTest(E2ETestCase):
 
     def test_server_rejects_wrong_current_password(self):
         self.open_terminals()
-        self.page.click('.topbar-btn:has-text("Change password")')
+        self.open_change_password()
         self.page.fill('#cp-current', 'no-es-la-meva')
         self.page.fill('#cp-new', OTHER_PASSWORD)
         self.page.fill('#cp-confirm', OTHER_PASSWORD)

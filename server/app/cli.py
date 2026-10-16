@@ -57,8 +57,6 @@ def _create(username, full_name, role):
         user = mgr_auth.create_user(username, password, role, full_name=full_name)
     except AppError as e:
         _fail(_app_error_text(e))
-    except ValueError as e:
-        _fail(str(e))
     click.echo(f'Creat l\'usuari {user.username} amb perfil {user.role}.')
 
 
@@ -115,12 +113,11 @@ def reset_password(username, temporary):
 
 def _set_active(username, active):
     user = _get_user_or_fail(username)
-    if not active and user.role == 'admin':
-        others = Users.query.filter(Users.role == 'admin', Users.is_active.is_(True),
-                                    Users.user_id != user.user_id).count()
-        if others == 0:
-            _fail('No es pot desactivar l\'últim administrador actiu.')
-    mgr_auth.set_active(user, active)
+    # Les mateixes regles que la pantalla d'usuaris: viuen a mgr_auth.
+    try:
+        mgr_auth.set_active(user, active)
+    except AppError as e:
+        _fail(_app_error_text(e))
     click.echo(f'Usuari {user.username} {"activat" if active else "desactivat; sessions tancades"}.')
 
 

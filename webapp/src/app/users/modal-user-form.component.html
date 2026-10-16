@@ -1,0 +1,48 @@
+<div class="modal-overlay" *ngIf="modalIsVisible">
+  <div class="modal-content kora-modal" (click)="preventClose($event)" role="dialog" aria-modal="true">
+    <form [formGroup]="form" (ngSubmit)="submit()" spellcheck="false" autocomplete="off">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <ng-container *ngIf="!isEdit">{{ 'New user' | translate }}</ng-container>
+          <ng-container *ngIf="isEdit">{{ 'Edit user' | translate }}</ng-container>
+        </h5>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger py-2 modal-error" *ngIf="error">{{ messages.text(error) }}</div>
+
+        <div class="mb-3">
+          <label class="form-label" for="uf-username">{{ 'Username' | translate }}</label>
+          <input id="uf-username" class="form-control" type="text" formControlName="username"
+                 koraAutofocus
+                 [class.is-invalid]="form.controls.username.invalid && form.controls.username.touched">
+          <div class="form-text" *ngIf="!isEdit">{{ '_sys_usernameRules' | translate }}</div>
+          <div class="form-text" *ngIf="isEdit">{{ 'The username cannot be changed.' | translate }}</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="uf-full-name">{{ 'Full name' | translate }}</label>
+          <input id="uf-full-name" class="form-control" type="text" formControlName="full_name" maxlength="120">
+        </div>
+
+        <div class="mb-1">
+          <label class="form-label" for="uf-role">{{ 'Role' | translate }}</label>
+          <select id="uf-role" class="form-select" formControlName="role">
+            <option *ngFor="let r of roles" [value]="r">{{ '_sys_role_' + r | translate }}</option>
+          </select>
+          <div class="form-text" *ngIf="data.isSelf">{{ 'You cannot change your own role.' | translate }}</div>
+        </div>
+
+        <div class="form-text mt-3" *ngIf="!isEdit">
+          {{ 'A temporary password will be generated. The user will have to change it when signing in.' | translate }}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="cancel()" [disabled]="busy">{{ 'Cancel' | translate }}</button>
+        <button type="submit" class="btn btn-primary" data-modal-confirm [disabled]="busy">
+          <ng-container *ngIf="!isEdit">{{ 'Create' | translate }}</ng-container>
+          <ng-container *ngIf="isEdit">{{ 'Save' | translate }}</ng-container>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

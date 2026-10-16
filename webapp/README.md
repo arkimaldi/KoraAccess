@@ -45,6 +45,27 @@ src/app/terminals/                    Pantalla de Terminals
 - Els diàlegs fan servir `window.prompt` de moment: és la peça a substituir
   quan es decideixi el disseny visual.
 
+## Interfície
+
+Seguim el patró de KapriCloudWebManager:
+
+- **Bootstrap 5.3**, CSS i JavaScript, empaquetat amb l'aplicació des de
+  `node_modules` (vegeu `angular.json`). **Mai des d'un CDN**: molts servidors de
+  client no tenen sortida a Internet. El mateix per a qualsevol tipus de lletra o
+  joc d'icones que s'afegeixi.
+- **Angular Router.** Rutes a `src/app/app.routes.ts`. El login i el canvi de
+  contrasenya obligatori no són rutes: els mostra `AppComponent` segons l'estat
+  de la sessió.
+- **Modals amb el `ModalService` del Manager**, copiat sense canvis a
+  `src/app/services/modal.service.ts`. Els modals genèrics (confirmar, demanar un
+  valor) són a `src/app/shared/modals`. Ja no es fa servir `window.confirm` ni
+  `window.prompt`.
+- Els desplegables (menú de l'avatar, accions de cada usuari) fan servir el
+  `data-bs-toggle="dropdown"` de Bootstrap.
+
+Bootstrap genera un avís en compilar (`.form-floating>~label`): és un defecte
+conegut del seu CSS i és inofensiu.
+
 ## Traduccions (i18n)
 
 Tota la traducció es fa aquí, amb **ngx-translate**, igual que a
@@ -58,12 +79,18 @@ Idiomes: `en` (per defecte i idioma de referència), `ca` i `es`. Fitxers a
 | Tipus | Exemple | D'on surt | Com es manté |
 |---|---|---|---|
 | Text de plantilla | `Add description` | `{{ 'Add description' \| translate }}` | `npm run ngx-extract` |
-| `_sys_...` | `_sys_confirmRelease` | Codi TypeScript (`translate.instant`) | A mà |
+| `_sys_...` | `_sys_confirmRelease` | Codi TypeScript, o noms construïts a la plantilla | A mà |
 | `MSG_...` | `MSG_LICENSE_LIMIT_REACHED` | Missatges del servidor (`server/app/messages.py`) | A mà |
 
 Les plantilles s'escriuen **en anglès**, i la clau és el mateix text. L'extractor
 només detecta la forma `{{ 'text' | translate }}`, també dins d'atributs
 (`placeholder="{{ 'text' | translate }}"`). No ha de contenir cometes.
+
+**Tota clau que es passa des del codi ha de ser `_sys_`**, també els títols i
+textos dels modals (`titleKey: '_sys_actionRelease'`). L'extractor no les troba,
+i el procediment només restaura les `_sys_` i les `MSG_`: una clau normal
+passada des del codi desapareixeria d'`en.json` sense avisar. La prova
+`test_keys_passed_from_code_are_sys_or_msg` ho fa complir.
 
 ### Procediment
 

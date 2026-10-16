@@ -16,6 +16,7 @@ del login. Es revoquen esborrant-ne la fila.
 
 import hashlib
 import logging
+import re
 import secrets
 from datetime import timedelta
 
@@ -29,6 +30,15 @@ from app.messages import AppError, Msg
 
 ROLES = ('admin', 'operator')
 LANGUAGES = ('en', 'ca', 'es')
+
+USERNAME_MIN, USERNAME_MAX = 2, 64
+USERNAME_RE = re.compile(r'^[a-z0-9._-]+$')
+FULL_NAME_MAX = 120
+
+# Contrasenyes temporals: sense caràcters que es confonguin en llegir-los en veu
+# alta o en una pantalla (0/O, 1/l/I). 16 caràcters d'un alfabet de 31 donen uns
+# 79 bits, en grups de quatre per poder-los dictar.
+_TEMP_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
 
 _hasher = PasswordHasher()
 
@@ -64,6 +74,26 @@ def normalize_username(username):
     return (username or '').strip().lower()
 
 
+def check_username(username):
+    if not (USERNAME_MIN <= len(username) <= USERNAME_MAX) or not USERNAME_RE.match(username):
+        raise AppError(Msg.USERNAME_INVALID, 400, min=USERNAME_MIN, max=USERNAME_MAX)
+
+
+def check_full_name(full_name):
+    if len(full_name or '') > FULL_NAME_MAX:
+        raise AppError(Msg.FULL_NAME_TOO_LONG, 400, max=FULL_NAME_MAX)
+
+
+def check_role(role):
+    if role not in ROLES:
+        raise AppError(Msg.ROLE_INVALID, 400)
+
+
+def generate_temporary_password():
+    raw = ''.join(secrets.choice(_TEMP_ALPHABET) for _ in range(16))
+    return '-'.join(raw[i:i + 4] for i in range(0, 16, 4))
+
+
 # ----------------------------------------------------------------------
 # Usuaris
 # ----------------------------------------------------------------------
@@ -73,14 +103,14 @@ def get_user_by_username(username):
 
 def create_user(username, password, role, full_name='', must_change_password=False):
     username = normalize_username(username)
-    if not username:
-        raise ValueError('El nom d\'usuari no pot ser buit.')
-    if role not in ROLES:
-        raise ValueError(f'Perfil desconegut: {role}. Valors possibles: {", ".join(ROLES)}.')
+    check_username(username)
+    check_role(role)
+    full_name = (full_name or '').strip()
+    check_full_name(full_name)
     if get_user_by_username(username) is not None:
-        raise ValueError(f'Ja existeix l\'usuari {username}.')
+        raise AppError(Msg.USERNAME_TAKEN, 409, username=username)
     check_password_policy(password)
-    user = Users(username=username, full_name=full_name or '', role=role,
+    user = Users(username=username, full_name=full_name, role=role,
                  password_hash=hash_password(password),
                  must_change_password=must_change_password)
     db.session.add(user)
@@ -123,10 +153,61 @@ def change_password(user, new_password, keep_session_id=None):
     db.session.commit()
 
 
-def set_active(user, active):
+def set_temporary_password(user):
+    """
+    Assigna una contrasenya generada que l'usuari haurà de canviar en entrar, i
+    tanca totes les seves sessions. Retorna la contrasenya, que només es mostra
+    un cop: no es desa enlloc més que en forma de hash.
+    """
+    password = generate_temporary_password()
+    user.password_hash = hash_password(password)
+    user.password_changed_dts = utcnow()
+    user.must_change_password = True
+    revoke_user_sessions(user, commit=False)
+    db.session.commit()
+    return password
+
+
+def _other_active_admins(user):
+    return Users.query.filter(Users.role == 'admin', Users.is_active.is_(True),
+                              Users.user_id != user.user_id).count()
+
+
+def _check_admin_removal(user, acting_user):
+    """
+    Regles en treure un administrador actiu, per desactivació o per canvi de
+    perfil:
+      - ningú es pot treure a si mateix: es tancaria la porta per accident;
+      - sempre hi ha d'haver almenys un administrador actiu.
+    """
+    if acting_user is not None and acting_user.user_id == user.user_id:
+        raise AppError(Msg.CANNOT_MODIFY_SELF, 409)
+    if user.role == 'admin' and user.is_active and _other_active_admins(user) == 0:
+        raise AppError(Msg.LAST_ADMIN, 409)
+
+
+def set_active(user, active, acting_user=None):
+    """Desactivar tanca totes les sessions de l'usuari."""
+    if not active and user.is_active:
+        _check_admin_removal(user, acting_user)
     user.is_active = bool(active)
     if not active:
         revoke_user_sessions(user, commit=False)
+    db.session.commit()
+
+
+def update_user(user, full_name, role, acting_user=None):
+    """
+    Canvia el nom complet i el perfil. El perfil té efecte a la petició
+    següent: es llegeix de la base de dades cada vegada, no viatja en el token.
+    """
+    full_name = (full_name or '').strip()
+    check_full_name(full_name)
+    check_role(role)
+    if user.role == 'admin' and role != 'admin':
+        _check_admin_removal(user, acting_user)
+    user.full_name = full_name
+    user.role = role
     db.session.commit()
 
 
@@ -213,6 +294,33 @@ def purge_expired_sessions(commit=True):
     except Exception as e:
         logging.error('purge_expired_sessions exception: %s', e)
         db.session.rollback()
+
+
+def active_sessions_by_user():
+    """{user_id: nombre de sessions vigents}, amb una sola consulta."""
+    cfg = current_app.config
+    now = utcnow()
+    idle_cutoff = now - timedelta(seconds=cfg['AUTH_IDLE_TIMEOUT_S'])
+    rows = (db.session.query(UserSessions.user_id, db.func.count(UserSessions.session_id))
+            .filter(UserSessions.expires_dts > now, UserSessions.last_seen_dts > idle_cutoff)
+            .group_by(UserSessions.user_id).all())
+    return dict(rows)
+
+
+def _iso(dts):
+    """Les dates es desen en UTC sense zona: s'hi afegeix perquè el navegador les passi a local."""
+    return dts.isoformat() + 'Z' if dts else None
+
+
+def user_to_admin_dict(user, active_sessions=0):
+    """El que veu un administrador a la llista d'usuaris."""
+    return {
+        **user_to_dict(user),
+        'is_active': user.is_active,
+        'created_dts': _iso(user.created_dts),
+        'last_login_dts': _iso(user.last_login_dts),
+        'active_sessions': active_sessions,
+    }
 
 
 def user_to_dict(user):

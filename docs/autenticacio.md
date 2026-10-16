@@ -131,10 +131,39 @@ Queden fora:
 | `admin` | Tot, inclosa la gestió d'usuaris |
 | `operator` | Tot, excepte la gestió d'usuaris |
 
-En aquesta iteració la gestió d'usuaris es fa amb ordres al servidor, així que
-encara no hi ha cap endpoint exclusiu d'administrador. Els permisos s'hauran de
-comprovar **al servidor**, amb un decorador, quan arribi la pantalla
-d'administració. Al frontend només serveixen per amagar botons.
+Els permisos es comproven **al servidor**, amb el decorador `admin_required`
+(`server/app/api/permissions.py`), a totes les rutes de `/api/users`. La prova
+`test_every_users_route_requires_admin` recorre-les totes: una ruta nova sense el
+decorador la fa fallar. Al frontend el perfil només serveix per amagar el menú
+d'usuaris; si un operador hi entra escrivint l'URL, el servidor li respon 403.
+
+El perfil es llegeix de la base de dades a cada petició, no viatja en el token.
+Si es treu el perfil d'administrador a algú, té efecte a la petició següent,
+sense haver de tancar-li la sessió.
+
+## 5b. Gestió d'usuaris des de la webapp
+
+Pantalla **Usuaris**, només per a administradors.
+
+- **Contrasenyes generades pel servidor.** En crear un usuari o restablir-li la
+  contrasenya, el servidor en genera una de temporal (16 caràcters en grups de
+  quatre, sense caràcters que es confonguin) i la retorna **una sola vegada**.
+  L'usuari l'haurà de canviar en entrar. Els administradors que les trien a mà
+  acostumen a posar-ne de febles, i així ningú més no la coneix després del
+  primer login. El modal que la mostra no es tanca fent clic a fora, perquè no
+  es perdi per accident.
+- **El nom d'usuari no es pot canviar**: és amb el que s'entra.
+- **No s'esborren usuaris, es desactiven.** Es conserva la traça per als
+  registres d'auditoria. Desactivar tanca totes les sessions.
+- **Ningú es pot desactivar ni treure el perfil d'administrador a si mateix**,
+  per evitar tancar-se la porta per accident.
+- **Sempre hi ha d'haver almenys un administrador actiu.**
+- **Tancar les sessions** d'un usuari sense desactivar-lo, per exemple si ha
+  perdut el portàtil. Si un administrador tanca les seves, es manté la que està
+  fent servir.
+
+Aquestes regles són a `mgr_auth.py` i les comparteixen la pantalla i les ordres
+de línia de comandes, de manera que no es poden desincronitzar.
 
 ---
 

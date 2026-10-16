@@ -110,7 +110,7 @@ class DescriptionEditTest(E2ETestCase):
         self.open_terminals()
         self.edit('00000000000000B2')
         self.page.keyboard.type('canviat')
-        self.page.locator('h2').click()
+        self.page.locator('h1').click()
         self.page.wait_for_timeout(300)
         self.assertEqual(self.desc_cell('00000000000000B2').inner_text().strip(), 'Magatzem')
 
