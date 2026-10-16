@@ -36,8 +36,8 @@ cd server
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -r requirements.txt
-python manage.py users create-admin   # un cop: el primer usuari
 python run.py                    # http://localhost:8080
+# La primera vegada crea l'usuari admin: la contrasenya és a secrets/initial-admin-password.txt
 ```
 
 **Frontend**

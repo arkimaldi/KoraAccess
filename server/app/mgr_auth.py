@@ -151,6 +151,7 @@ def change_password(user, new_password, keep_session_id=None):
     user.must_change_password = False
     revoke_user_sessions(user, keep_session_id=keep_session_id, commit=False)
     db.session.commit()
+    _initial_password_no_longer_valid(user)
 
 
 def set_temporary_password(user):
@@ -165,7 +166,14 @@ def set_temporary_password(user):
     user.must_change_password = True
     revoke_user_sessions(user, commit=False)
     db.session.commit()
+    _initial_password_no_longer_valid(user)
     return password
+
+
+def _initial_password_no_longer_valid(user):
+    """Si era l'administrador inicial, el fitxer amb la seva contrasenya ja no serveix."""
+    from app import mgr_bootstrap   # aquí i no a dalt: mgr_bootstrap importa aquest mòdul
+    mgr_bootstrap.remove_initial_password_file(user)
 
 
 def _other_active_admins(user):

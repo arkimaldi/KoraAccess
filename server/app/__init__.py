@@ -70,6 +70,13 @@ def create_app(config_name='dev', start_background=True):
                 'Compileu l\'Angular i copieu el build a static/.', 200)
 
     if start_background:
+        # Només en arrencar el servei, no a les proves ni a manage.py: una
+        # ordre de gestió en una instal·lació nova no ha de crear l'administrador
+        # pel seu compte.
+        from app import mgr_bootstrap
+        with app.app_context():
+            mgr_bootstrap.secure_data_dir()
+            mgr_bootstrap.ensure_initial_admin()
         _start_background_tasks(app, discovery)
 
     return app

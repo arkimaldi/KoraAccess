@@ -143,3 +143,40 @@ class UserLanguageTest(E2ETestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+
+class FreshInstallationTest(E2ETestCase):
+    """
+    Instal·lació nova: el servidor arrenca sense cap usuari i crea l'administrador
+    inicial amb una contrasenya aleatòria, desada a la carpeta de dades.
+    """
+
+    LOGIN = False
+    USERS = []
+
+    def test_initial_admin_flow(self):
+        import os
+        path = os.path.join(self.server.data_dir, 'secrets', 'initial-admin-password.txt')
+        self.assertTrue(os.path.exists(path), 'el servidor no ha creat el fitxer de la contrasenya inicial')
+        with open(path, encoding='utf-8') as f:
+            password = f.read().strip()
+
+        # Login per la pantalla, com ho faria l'instal·lador
+        self.page.goto(BASE_URL + '/')
+        self.page.wait_for_selector('kora-login', timeout=10000)
+        self.page.fill('#login-username', 'admin')
+        self.page.fill('#login-password', password)
+        self.page.click('kora-login button[type=submit]')
+
+        # Ha de canviar la contrasenya abans de res
+        self.page.wait_for_selector('kora-change-password', timeout=10000)
+        self.page.fill('#cp-current', password)
+        self.page.fill('#cp-new', 'la-contrasenya-definitiva')
+        self.page.fill('#cp-confirm', 'la-contrasenya-definitiva')
+        self.page.click('kora-change-password button[type=submit]')
+        self.page.wait_for_selector('table.grid', timeout=10000)
+
+        # El fitxer ja no hi és: la contrasenya inicial ha deixat de ser vàlida
+        self.assertFalse(os.path.exists(path))
+        # I la contrasenya no apareix al log del servidor
+        self.assertNotIn(password, self.server.read_log())

@@ -29,6 +29,9 @@ e2e/artifacts/
 Thumbs.db
 
 # ---- Certificats i secrets ----
+# Contrasenya inicial de l'administrador (server/app/mgr_bootstrap.py). En
+# desenvolupament es crea dins de server/ si no es defineix KORAACCESS_DATA_DIR.
+secrets/
 *.pem
 *.key
 *.pfx

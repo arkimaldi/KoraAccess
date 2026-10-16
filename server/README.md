@@ -66,13 +66,15 @@ SQLite no admet `ALTER COLUMN` ni `DROP COLUMN`. Flask-Migrate ho resol amb
 
 ## Usuaris
 
-Cal crear el primer administrador abans d'entrar per primera vegada:
+En la primera arrencada, si no hi ha cap usuari, el servidor crea `admin` amb
+una contrasenya aleatòria i temporal, i la desa a
+`<carpeta de dades>/secrets/initial-admin-password.txt`. El log indica on és.
+En el primer login s'ha de canviar, i llavors el fitxer s'esborra.
 
-```bash
-python manage.py users create-admin
-```
+En desenvolupament, si no has definit `KORAACCESS_DATA_DIR`, el fitxer és a
+`server/secrets/`, que el `.gitignore` exclou.
 
-En aquesta iteració, la resta d'usuaris també es gestiona amb ordres
+La resta d'usuaris es gestiona des de la pantalla d'usuaris, o amb ordres
 (`python manage.py users --help`). El disseny de l'autenticació i les sessions,
 i el motiu de cada decisió, són a `docs/autenticacio.md`.
 

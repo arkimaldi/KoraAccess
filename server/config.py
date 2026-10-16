@@ -11,7 +11,14 @@ DEFAULT_DATA_DIR = os.environ.get('KORAACCESS_DATA_DIR', BASE_DIR)
 
 
 class BaseConfig:
+    DATA_DIR = DEFAULT_DATA_DIR
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DEFAULT_DATA_DIR, 'koraaccess.sqlite')
+
+    # Restringir els permisos de tota la carpeta de dades als administradors i
+    # al compte del servei. Conté la base de dades, amb els hashes de les
+    # contrasenyes i de les sessions, i la contrasenya inicial de l'administrador.
+    # La subcarpeta secrets/ es restringeix sempre, també en desenvolupament.
+    SECURE_DATA_DIR = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # --- Servidor ---
@@ -76,6 +83,9 @@ class DevConfig(BaseConfig):
     LISTEN_PORT = int(os.environ.get('KORAACCESS_PORT', 8080))
     TLS_CERT_FILE = ''   # en desenvolupament, HTTP pla
     AUTH_COOKIE_SECURE = False
+    # En desenvolupament la carpeta de dades pot ser la del codi font: no se'n
+    # canvien els permisos, o el desenvolupador podria perdre-hi l'accés.
+    SECURE_DATA_DIR = False
 
     # En desenvolupament s'hi va per IP i HTTP pla: no hi ha certificat a
     # validar ni DNS que resolgui el domini. Ha de coincidir exactament amb el

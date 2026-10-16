@@ -107,6 +107,7 @@ def reset_password(username, temporary):
     user.password_changed_dts = mgr_auth.utcnow()
     user.must_change_password = temporary
     mgr_auth.revoke_user_sessions(user)
+    mgr_auth._initial_password_no_longer_valid(user)
     click.echo(f'Contrasenya restablerta per a {user.username}. Sessions tancades.'
                + (' L\'haurà de canviar en entrar.' if temporary else ''))
 

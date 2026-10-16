@@ -167,7 +167,92 @@ de línia de comandes, de manera que no es poden desincronitzar.
 
 ---
 
-## 6. Ordres de gestió
+## 6. Primer administrador
+
+En la **primera arrencada del servei**, si no existeix cap usuari, el servidor
+crea `admin` amb una contrasenya aleatòria pròpia d'aquella instal·lació,
+temporal, i la desa a:
+
+```
+<carpeta de dades>\secrets\initial-admin-password.txt
+```
+
+En producció, `C:\ProgramData\KoraAccess\secrets\initial-admin-password.txt`.
+El fitxer només conté la contrasenya, perquè l'instal·lador la pugui llegir i
+mostrar al final de la instal·lació. El codi és a `server/app/mgr_bootstrap.py`.
+
+### Per què no una contrasenya fixa
+
+Seria la mateixa a totes les instal·lacions, la coneixeria tothom qui ha tocat
+el producte, i moltes no es canviarien mai. En un programa que obre portes, això
+és un forat de seguretat física. A més, el **Cyber Resilience Act** de la UE
+exigeix que els productes es comercialitzin amb una configuració segura per
+defecte, i les guies d'aplicació ho concreten en no portar contrasenyes estàndard
+preinstal·lades. Les obligacions principals s'apliquen a partir de l'11 de
+desembre de 2027. Els lectors de control d'accés figuren entre els productes
+importants de Classe I, amb requisits de conformitat més estrictes; si
+KoraAccess també hi entra, ho ha de valorar qui porti el tema de conformitat.
+
+Per conèixer la contrasenya inicial cal accés al servidor, que és la mateixa
+font de confiança que les ordres de gestió.
+
+### Cicle de vida
+
+- Es crea **només si no hi ha cap usuari**, i només en arrencar el servei: ni
+  les proves ni `manage.py` la creen. Una segona arrencada no la sobreescriu.
+- L'instal·lador ha d'**arrencar el servei i esperar que aparegui el fitxer**
+  abans de mostrar-ne el contingut.
+- Al log s'escriu on és el fitxer, **mai la contrasenya**.
+- En el primer login s'ha de canviar, i mentrestant el servidor rebutja
+  qualsevol altra petició.
+- El fitxer **s'esborra** quan la contrasenya deixa de ser vàlida: en canviar-la,
+  o si algú la restableix des de la pantalla d'usuaris o amb `reset-password`.
+- Si es perd abans d'haver entrat: `python manage.py users reset-password admin`.
+
+### Permisos de la carpeta
+
+A Windows, les subcarpetes de `ProgramData` les poden llegir **tots els usuaris
+locals**. El servidor treu l'herència i hi deixa només:
+
+| Compte | SID |
+|---|---|
+| SYSTEM (el compte amb què NSSM executa el servei per defecte) | `S-1-5-18` |
+| Administradors | `S-1-5-32-544` |
+| El compte que executa el servei, si és un altre | el seu |
+
+Es fan servir els SID i no els noms dels grups perquè els noms canvien segons
+l'idioma del Windows: en un servidor en castellà el grup es diu
+«Administradores», i una ordre amb el nom anglès fallaria.
+
+- La subcarpeta `secrets` es protegeix **sempre**.
+- La carpeta de dades sencera es protegeix en producció (`SECURE_DATA_DIR`), a
+  cada arrencada: conté la base de dades, amb els hashes de les contrasenyes i
+  de les sessions. En desenvolupament no, perquè la carpeta de dades pot ser la
+  del codi font.
+- **Si no es poden protegir els permisos, no es crea l'administrador** i es
+  registra un error. Més val haver-lo de crear amb `manage.py` que deixar la
+  contrasenya llegible per qualsevol usuari del servidor.
+
+Fora de Windows, permisos 700 a la carpeta i 600 al fitxer.
+
+### Comprovació en un servidor Windows
+
+Els permisos de Windows **no es poden provar en l'entorn de proves automàtiques**,
+que és Linux: allà només es comprova quina ordre `icacls` s'executaria. Després
+de la primera arrencada del servei en un Windows real, cal verificar-ho:
+
+```
+icacls "C:\ProgramData\KoraAccess\secrets"
+```
+
+Han d'aparèixer només `NT AUTHORITY\SYSTEM`, els administradors (amb el nom que
+tinguin en aquell idioma) i, si escau, el compte del servei, i cap línia de
+`Users` o `Usuarios`. Una segona comprovació útil: intentar obrir el fitxer amb
+un usuari local que no sigui administrador, i que se li denegui l'accés.
+
+---
+
+## 7. Ordres de gestió
 
 ```bash
 cd server
@@ -179,9 +264,10 @@ python manage.py users deactivate <usuari>
 python manage.py users activate <usuari>
 ```
 
-- **El primer administrador es crea així, en instal·lar.** No hi ha pantalla web
-  de primera configuració: el primer que hi arribés es convertiria en
-  administrador. Tampoc hi ha cap contrasenya per defecte al codi.
+- **El primer administrador es crea sol** (secció 6). `create-admin` queda per
+  si cal crear-lo a mà, per exemple si no s'han pogut protegir els permisos. No
+  hi ha pantalla web de primera configuració: el primer que hi arribés es
+  convertiria en administrador.
 - **L'accés al servidor és la font de confiança.** També és el camí per
   recuperar l'accés si s'oblida la contrasenya de l'últim administrador.
 - `reset-password` deixa la contrasenya com a temporal: l'usuari l'haurà de
@@ -194,7 +280,7 @@ python manage.py users activate <usuari>
 
 ---
 
-## 7. Desenvolupament
+## 8. Desenvolupament
 
 La cookie porta `Secure`, i el navegador només l'envia per HTTPS. En
 desenvolupament, que va en HTTP pla, `DevConfig` la desactiva
