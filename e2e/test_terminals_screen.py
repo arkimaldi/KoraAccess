@@ -214,3 +214,56 @@ class OrderingTest(E2ETestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+
+class ReleasedTerminalReappearsQuicklyTest(E2ETestCase):
+    """
+    Regressió: en alliberar un terminal, la fila desapareixia i la pantalla
+    tornava al ritme de 30 s just abans que l'scan diferit del servidor
+    trobés el terminal verge. Calia esperar fins a 30 s per tornar-lo a vincular.
+    """
+
+    EUI64 = '00000000000000C9'
+    SEED = [{'eui64': EUI64, 'description': 'Sortint', 'status': DELETE_PENDING}]
+
+    def device_post(self, msg_type, **arg):
+        """Crida del protocol dels terminals, com la faria el dispositiu."""
+        from harness import BASE_URL
+        return self.page.request.post(BASE_URL + '/v1/Cloud/Event', data={
+            'msgType': msg_type, 'msgArg': {'sEUI64': self.EUI64, 'sToken': '', **arg}})
+
+    def test_free_row_appears_within_seconds(self):
+        self.open_terminals()
+
+        # El terminal fa el keep-alive, rep el lot d'alliberament i el confirma
+        self.device_post('on_cloud_keep_alive')
+        self.device_post('ans_cloud_batch', ucRet=0, msgId={'name': 'delete_device_step_2'},
+                         listBatch=[{'msgArg': {'msgId': 'desecurize', 'ucRet': 0}},
+                                    {'msgArg': {'msgId': 'clear_token', 'ucRet': 0}},
+                                    {'msgArg': {'msgId': 'apply', 'ucRet': 0}}])
+
+        # La fila desapareix al següent refresc
+        self.row(self.EUI64).wait_for(state='detached', timeout=10000)
+
+        # Després arriba la resposta al discovery: el terminal ja és verge
+        self.server.inject_observation(self.EUI64, '')
+
+        # Ha de tornar a sortir com a FREE en pocs segons, no al cap de 30
+        free = self.row(self.EUI64).locator('.label-free')
+        free.wait_for(timeout=10000)
+
+
+class NormalPollingTest(E2ETestCase):
+    """Sense cap operació pendent, la pantalla refresca cada 30 s, no cada 5."""
+
+    SEED = [{'eui64': '00000000000000CA', 'description': 'Porta', 'status': ENROLLED}]
+
+    def test_no_fast_polling_without_pending_work(self):
+        self.open_terminals()
+        requests = []
+        handler = (lambda r: requests.append(1)
+                   if r.url.endswith('/api/terminals') and r.method == 'GET' else None)
+        self.page.on('request', handler)
+        self.page.wait_for_timeout(11000)
+        self.page.remove_listener('request', handler)
+        self.assertEqual(len(requests), 0)

@@ -300,6 +300,7 @@ expliquen la majoria de comportaments que semblen estranys:
 | Caducitat d'una observació | 90 s | `DISCOVERY_RESULT_TTL` |
 | Scan després d'esborrar | 3 s de retard | `DISCOVERY_RESCAN_DELAY` |
 | Refresc del llistat | 30 s, o 5 s si hi ha feina pendent | `REFRESH_PERIOD_MS` / `FAST_REFRESH_PERIOD_MS` |
+| Marge del ritme ràpid | 15 s després de l'última operació | `FAST_REFRESH_GRACE_MS` |
 | Keep-alive del dispositiu | 10 s | `DEVICES_KEEP_ALIVE_TMO` |
 | Pas a `lost` / `severe_lost` | 150 s / 300 s | `DEVICES_LOST_TMO` / `DEVICES_SEVERE_LOST_TMO` |
 
@@ -325,6 +326,13 @@ refresca cada 5 s en lloc de 30. **L'scan manté el seu ritme de 30 s**, perquè
 
 El ritme es lliga a l'estat i no a una finestra de temps fixa, de manera que
 cobreix també els enrolaments lents i l'alliberament.
+
+**El ritme ràpid es manté 15 s més després de l'última operació**
+(`FAST_REFRESH_GRACE_MS`). En alliberar un terminal, la fila desapareix i el
+servidor fa un scan uns segons després per trobar-lo verge (vegeu l'scan diferit,
+a sota). Si el ritme tornés a 30 s en el mateix moment que desapareix la fila,
+la pantalla no recolliria el resultat de l'scan fins al cicle següent, i calia
+esperar fins a 30 s per poder tornar a vincular el terminal.
 
 ### L'scan diferit després d'esborrar
 

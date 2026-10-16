@@ -32,6 +32,17 @@ const FAST_REFRESH_PERIOD_MS = 5000;
 const PENDING_STATUS = ['enroll_pending', 'delete_pending'];
 
 /**
+ * Temps que es manté el ritme ràpid després que s'acabi l'última operació.
+ *
+ * En alliberar un terminal, la fila desapareix i el servidor fa un scan uns
+ * segons després per trobar-lo verge. Si el ritme tornés a 30 s en el mateix
+ * moment que desapareix la fila, la pantalla no recolliria el resultat d'aquell
+ * scan fins al cicle següent. Ha de cobrir el retard de l'scan del servidor
+ * (DISCOVERY_RESCAN_DELAY) més un cicle ràpid.
+ */
+const FAST_REFRESH_GRACE_MS = 15000;
+
+/**
  * Espera entre el primer scan i el primer llistat en entrar a la pantalla.
  * L'scan no espera respostes: sense aquesta pausa, el primer llistat no veuria
  * cap dispositiu verge i la pantalla apareixeria buida.
@@ -105,13 +116,25 @@ export class TerminalsComponent implements OnInit, OnDestroy {
     return this.terminals.some(t => !!t.status && PENDING_STATUS.includes(t.status));
   }
 
+  /** Moment en què s'ha vist per última vegada una operació pendent. */
+  private lastPendingAt = 0;
+
+  /** Ritme ràpid mentre hi ha feina pendent i durant uns segons després. */
+  private wantsFastRefresh(): boolean {
+    if (this.hasPendingWork) {
+      this.lastPendingAt = Date.now();
+      return true;
+    }
+    return Date.now() - this.lastPendingAt < FAST_REFRESH_GRACE_MS;
+  }
+
   /**
    * Reprograma el proper refresc segons si hi ha feina pendent. Es fa amb
    * timer() en lloc d'interval() perquè el període pot canviar a cada cicle.
    */
   private scheduleNext(): void {
     this.listTimer?.unsubscribe();
-    const period = this.hasPendingWork ? FAST_REFRESH_PERIOD_MS : REFRESH_PERIOD_MS;
+    const period = this.wantsFastRefresh() ? FAST_REFRESH_PERIOD_MS : REFRESH_PERIOD_MS;
     this.listTimer = timer(period).subscribe(() => {
       // Mentre s'edita una descripció no es refresca: el valor de la base de
       // dades sobreescriuria el que l'usuari està escrivint.
