@@ -94,6 +94,11 @@
         "en.json": "Deactivate",
         "es.json": "Desactivar"
     },
+    "Delete": {
+        "ca.json": "Esborra",
+        "en.json": "Delete",
+        "es.json": "Borrar"
+    },
     "Delete record": {
         "ca.json": "Esborrar registre",
         "en.json": "Delete record",
@@ -173,6 +178,11 @@
         "ca.json": "No us podeu desactivar ni treure el perfil d'administrador a vós mateix.",
         "en.json": "You cannot deactivate yourself or remove your own administrator role.",
         "es.json": "No puede desactivarse ni quitarse el perfil de administrador a usted mismo."
+    },
+    "MSG_DELETE_ACTIVE_USER": {
+        "ca.json": "Desactiveu l'usuari abans d'esborrar-lo.",
+        "en.json": "Deactivate the user before deleting it.",
+        "es.json": "Desactive el usuario antes de borrarlo."
     },
     "MSG_DELETE_ENROLLED_DEVICE": {
         "ca.json": "Un dispositiu enrolat s'ha d'alliberar, no esborrar.",
@@ -323,6 +333,11 @@
         "ca.json": "El nom d'usuari ha de tenir entre {{min}} i {{max}} caràcters, i només pot contenir lletres minúscules, xifres, punts, guions i guions baixos.",
         "en.json": "The username must have between {{min}} and {{max}} characters, using only lowercase letters, digits, dots, hyphens and underscores.",
         "es.json": "El nombre de usuario debe tener entre {{min}} y {{max}} caracteres, y solo puede contener letras minúsculas, cifras, puntos, guiones y guiones bajos."
+    },
+    "MSG_USERNAME_RESERVED": {
+        "ca.json": "Els noms d'usuari que comencen per {{prefix}} estan reservats.",
+        "en.json": "Usernames starting with {{prefix}} are reserved.",
+        "es.json": "Los nombres de usuario que empiezan por {{prefix}} están reservados."
     },
     "MSG_USERNAME_TAKEN": {
         "ca.json": "El nom d'usuari {{username}} ja està en ús.",
@@ -519,6 +534,11 @@
         "en.json": "Delete record",
         "es.json": "Borrar registro"
     },
+    "_sys_actionDeleteUser": {
+        "ca.json": "Esborra l'usuari",
+        "en.json": "Delete user",
+        "es.json": "Borrar usuario"
+    },
     "_sys_actionLink": {
         "ca.json": "Vincular",
         "en.json": "Link",
@@ -558,6 +578,11 @@
         "ca.json": "Esborrar el registre de {{eui64}}?",
         "en.json": "Delete the record of {{eui64}}?",
         "es.json": "¿Borrar el registro de {{eui64}}?"
+    },
+    "_sys_confirmDeleteUser": {
+        "ca.json": "Esborrar {{username}}? Se n'eliminaran les dades personals i no es podrà desfer. El nom d'usuari quedarà lliure per tornar-lo a fer servir.",
+        "en.json": "Delete {{username}}? Their personal data will be removed and this cannot be undone. The username will become available again.",
+        "es.json": "¿Borrar a {{username}}? Se eliminarán sus datos personales y no se podrá deshacer. El nombre de usuario quedará libre para volver a usarlo."
     },
     "_sys_confirmRelease": {
         "ca.json": "Alliberar {{eui64}}? El terminal quedarà verge.",

@@ -75,7 +75,11 @@ En desenvolupament, si no has definit `KORAACCESS_DATA_DIR`, el fitxer és a
 `server/secrets/`, que el `.gitignore` exclou.
 
 La resta d'usuaris es gestiona des de la pantalla d'usuaris, o amb ordres
-(`python manage.py users --help`). El disseny de l'autenticació i les sessions,
+(`python manage.py users --help`).
+
+Esborrar un usuari l'anonimitza en lloc d'eliminar-ne la fila. Per això **tota
+consulta d'usuaris ha de partir de `mgr_auth.live_users()`**, que exclou els
+esborrats: una consulta directa a `Users.query` els inclouria. El disseny de l'autenticació i les sessions,
 i el motiu de cada decisió, són a `docs/autenticacio.md`.
 
 Totes les rutes de `/api/` requereixen sessió tret de les declarades a

@@ -116,7 +116,7 @@ def ensure_initial_admin():
     haver de crear l'administrador amb manage.py que deixar la contrasenya
     llegible per qualsevol usuari del servidor.
     """
-    if Users.query.count() > 0:
+    if mgr_auth.live_users().count() > 0:
         return None
 
     path = initial_password_path()

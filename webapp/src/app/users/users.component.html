@@ -71,6 +71,10 @@
                 <li *ngIf="!u.is_active">
                   <button class="dropdown-item" type="button" data-action="activate" (click)="activate(u)">{{ 'Activate' | translate }}</button>
                 </li>
+                <!-- Esborrar és un segon pas: només sobre usuaris ja desactivats. -->
+                <li *ngIf="!u.is_active && !isSelf(u)">
+                  <button class="dropdown-item text-danger" type="button" data-action="delete" (click)="remove(u)">{{ 'Delete' | translate }}</button>
+                </li>
               </ul>
             </div>
           </td>

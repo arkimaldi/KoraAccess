@@ -6,8 +6,9 @@ Les contrasenyes inicials i les restablertes les genera el servidor i es
 retornen una sola vegada: l'administrador les dona a l'usuari, que les haurà de
 canviar en entrar. Així ningú més no les coneix després del primer login.
 
-No s'esborren usuaris, es desactiven: es conserva la traça per als registres
-d'auditoria.
+Esborrar un usuari no n'elimina la fila: l'anonimitza (mgr_auth.delete_user),
+perquè l'auditoria continuï quadrant. Només es poden esborrar usuaris
+desactivats.
 """
 
 from flask import Blueprint, g, jsonify, request
@@ -22,7 +23,8 @@ users_bp = Blueprint('users', __name__)
 
 
 def _get_user_or_404(user_id):
-    user = Users.query.filter_by(user_id=user_id).first()
+    """Un usuari esborrat respon com si no existís: no es pot reactivar ni editar."""
+    user = mgr_auth.get_user_by_id(user_id)
     if user is None:
         raise AppError(Msg.USER_UNKNOWN, 404)
     return user
@@ -37,7 +39,7 @@ def _admin_dict(user):
 @admin_required
 def list_users():
     sessions = mgr_auth.active_sessions_by_user()
-    users = Users.query.order_by(Users.username).all()
+    users = mgr_auth.live_users().order_by(Users.username).all()
     return jsonify({'users': [mgr_auth.user_to_admin_dict(u, sessions.get(u.user_id, 0)) for u in users]})
 
 
@@ -83,6 +85,15 @@ def activate(user_id):
     user = _get_user_or_404(user_id)
     mgr_auth.set_active(user, True, acting_user=current_user)
     return jsonify({'user': _admin_dict(user)})
+
+
+@users_bp.route('/api/users/<user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    """Esborra (anonimitza) un usuari desactivat. No es pot desfer."""
+    user = _get_user_or_404(user_id)
+    mgr_auth.delete_user(user, acting_user=current_user)
+    return jsonify({'ok': True})
 
 
 @users_bp.route('/api/users/<user_id>/close-sessions', methods=['POST'])

@@ -80,7 +80,7 @@ def create(username, full_name, role):
 @users_cli.command('list')
 def list_users():
     """Llista els usuaris."""
-    users = Users.query.order_by(Users.username).all()
+    users = mgr_auth.live_users().order_by(Users.username).all()
     if not users:
         click.echo('No hi ha cap usuari. Creeu-ne un amb: python manage.py users create-admin')
         return

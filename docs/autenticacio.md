@@ -153,8 +153,9 @@ Pantalla **Usuaris**, només per a administradors.
   primer login. El modal que la mostra no es tanca fent clic a fora, perquè no
   es perdi per accident.
 - **El nom d'usuari no es pot canviar**: és amb el que s'entra.
-- **No s'esborren usuaris, es desactiven.** Es conserva la traça per als
-  registres d'auditoria. Desactivar tanca totes les sessions.
+- **Desactivar** tanca totes les sessions i és reversible.
+- **Esborrar** és un segon pas, només sobre usuaris ja desactivats i mai sobre un
+  mateix, i no es pot desfer. Vegeu la secció 5c.
 - **Ningú es pot desactivar ni treure el perfil d'administrador a si mateix**,
   per evitar tancar-se la porta per accident.
 - **Sempre hi ha d'haver almenys un administrador actiu.**
@@ -164,6 +165,64 @@ Pantalla **Usuaris**, només per a administradors.
 
 Aquestes regles són a `mgr_auth.py` i les comparteixen la pantalla i les ordres
 de línia de comandes, de manera que no es poden desincronitzar.
+
+## 5c. Esborrar usuaris: anonimització
+
+Esborrar un usuari **no n'elimina la fila: l'anonimitza**
+(`mgr_auth.delete_user`). Hi ha dues necessitats que tiren en sentit contrari:
+
+- **La traçabilitat.** Quan hi hagi un registre d'auditoria de les accions
+  administratives, cada entrada apuntarà a un usuari. Si s'eliminés la fila, la
+  història es perdria justament quan més es necessita.
+- **La protecció de dades.** El RGPD demana no conservar dades personals més
+  temps del necessari. El termini i la base legal els ha de valorar qui porti la
+  protecció de dades.
+
+Anonimitzar compleix totes dues: es conserva el registre, sense res que
+identifiqui la persona.
+
+| Camp | Què se'n fa |
+|---|---|
+| `user_id` | Es manté: és la referència que farà servir l'auditoria |
+| `username` | Passa a ser `deleted-` seguit de l'`user_id` |
+| `full_name` | Es buida |
+| `language` | Es buida |
+| `password_hash` | Passa a `!`, que no correspon a cap contrasenya |
+| `role`, dates | Es mantenen: sense nom, no identifiquen ningú |
+| `deleted_dts` | Es marca |
+| Sessions | S'esborren |
+
+Decisions:
+
+- **El nom d'usuari nou no surt de l'antic.** Un hash de `maria` es podria
+  revertir provant noms: seria una pseudonimització, i per al RGPD continuaria
+  sent una dada personal. Surt de l'`user_id`, que no té cap relació amb la
+  persona.
+- **El nom d'usuari original queda lliure** i es pot tornar a fer servir. Per
+  impedir-ho caldria guardar que `maria` havia existit, que és el que es vol
+  esborrar.
+- **Un usuari esborrat no existeix per a cap operació**: no surt a la llista ni a
+  `manage.py users list`, i no es pot reactivar, editar ni restablir. A l'API
+  respon 404, com un usuari que no ha existit mai.
+- **El prefix `deleted-` és reservat**: no es pot crear cap usuari que en comenci.
+
+### Regla per al codi
+
+**Tota consulta d'usuaris ha de partir de `mgr_auth.live_users()`**, que exclou
+els esborrats. Una consulta directa a `Users.query` els inclouria, i podria fer
+reaparèixer un compte anònim.
+
+### Regla per a l'auditoria futura
+
+**L'auditoria ha de desar l'`user_id`, mai una còpia del nom.** Si cada entrada
+guardés el nom d'usuari com a text, anonimitzar l'usuari no serviria de res: el
+nom continuaria escrit a totes les entrades. Amb l'`user_id`, anonimitzant
+l'usuari s'anonimitza tota la seva traça d'un sol cop.
+
+Un registre anonimitzat encara pot permetre reconèixer algú indirectament, per
+exemple si l'auditoria mostra que l'únic administrador d'un mes concret va fer
+certes accions. Anonimitzar del tot és més difícil del que sembla, i també ho ha
+de valorar qui porti la protecció de dades.
 
 ---
 

@@ -130,6 +130,11 @@ class Users(UserMixin, db.Model):
     password_changed_dts = db.Column(db.DateTime, nullable=False, default=utcnow)
     last_login_dts = db.Column(db.DateTime, nullable=True)
 
+    # Usuari esborrat. No s'esborra la fila: s'anonimitza (mgr_auth.delete_user)
+    # perquè l'auditoria, que farà referència a user_id, continuï quadrant. A
+    # partir d'aquí, per a qualsevol operació, l'usuari no existeix.
+    deleted_dts = db.Column(db.DateTime, nullable=True)
+
     sessions = db.relationship('UserSessions', backref='user',
                                cascade='all, delete-orphan', passive_deletes=True)
 

@@ -102,6 +102,16 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Només sobre usuaris desactivats. Al servidor, l'usuari s'anonimitza en lloc
+   * d'eliminar-ne la fila, perquè l'auditoria continuï quadrant.
+   */
+  remove(u: AdminUser): void {
+    this.confirm({ titleKey: '_sys_actionDeleteUser', textKey: '_sys_confirmDeleteUser',
+                   params: { username: u.username }, confirmKey: '_sys_actionDeleteUser', danger: true }, () =>
+      this.run(this.service.delete(u.user_id)));
+  }
+
+  /**
    * Sobre un altre usuari, les tanca totes. Sobre un mateix, el servidor manté la
    * sessió que s'està fent servir i tanca les altres: tancar-la també equivaldria
    * a fer-se fora sense voler. La pantalla ho diu així.

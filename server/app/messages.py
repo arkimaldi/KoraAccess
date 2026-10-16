@@ -75,6 +75,8 @@ class Msg:
     FULL_NAME_TOO_LONG = 'MSG_FULL_NAME_TOO_LONG'
     LAST_ADMIN = 'MSG_LAST_ADMIN'
     CANNOT_MODIFY_SELF = 'MSG_CANNOT_MODIFY_SELF'
+    USERNAME_RESERVED = 'MSG_USERNAME_RESERVED'
+    DELETE_ACTIVE_USER = 'MSG_DELETE_ACTIVE_USER'
 
     # -- avisos de la pantalla de Terminals
     WARN_RESET_EXTERNALLY = 'MSG_WARN_RESET_EXTERNALLY'
@@ -127,6 +129,8 @@ MESSAGES = {
     Msg.FULL_NAME_TOO_LONG: 'The full name cannot exceed {max} characters.',
     Msg.LAST_ADMIN: 'There must always be at least one active administrator.',
     Msg.CANNOT_MODIFY_SELF: 'You cannot deactivate yourself or remove your own administrator role.',
+    Msg.USERNAME_RESERVED: 'Usernames starting with {prefix} are reserved.',
+    Msg.DELETE_ACTIVE_USER: 'Deactivate the user before deleting it.',
 
     Msg.WARN_RESET_EXTERNALLY: 'The device has been reset externally: its record must be deleted.',
     Msg.WARN_POINTS_ELSEWHERE: 'The device now points to another server: a physical reset is required.',

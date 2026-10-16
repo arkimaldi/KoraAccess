@@ -265,3 +265,52 @@ class OwnRowLabelCatalanTest(E2ETestCase):
         self.page.wait_for_timeout(300)
         own = self.page.locator(f'tr[data-username="{TEST_USER["username"]}"] .badge').first
         self.assertEqual(own.inner_text().strip(), 'Vostè')
+
+
+class DeleteUserTest(E2ETestCase):
+    """Esborrar un usuari és un segon pas, després de desactivar-lo."""
+
+    TO_DELETE = {'username': 'marxa', 'password': 'contrasenya-marxa', 'role': 'operator',
+                 'full_name': 'Persona Que Marxa'}
+    USERS = [TEST_USER, TO_DELETE]
+
+    def row(self, username):
+        return self.page.locator(f'tr[data-username="{username}"]')
+
+    def open_menu(self, username):
+        self.row(username).locator('[data-row-actions]').click()
+        self.page.wait_for_selector(f'tr[data-username="{username}"] .dropdown-menu.show')
+        return self.row(username).locator('.dropdown-menu')
+
+    def confirm(self):
+        self.page.click('kora-modal-confirm [data-modal-confirm]')
+        self.page.wait_for_timeout(700)
+
+    def test_delete_after_deactivating(self):
+        self.page.goto(BASE_URL + '/users')
+        self.page.wait_for_selector('table.users-table', timeout=10000)
+
+        # Actiu: no es pot esborrar
+        menu = self.open_menu('marxa')
+        self.assertEqual(menu.locator('[data-action="delete"]').count(), 0)
+        menu.locator('[data-action="deactivate"]').click()
+        self.confirm()
+
+        # Desactivat: ara sí
+        menu = self.open_menu('marxa')
+        menu.locator('[data-action="delete"]').click()
+        self.page.wait_for_selector('kora-modal-confirm .modal-content')
+        text = self.page.locator('kora-modal-confirm .modal-body').inner_text()
+        self.assertIn('marxa', text)
+        self.assertIn('cannot be undone', text)
+        self.confirm()
+
+        self.row('marxa').wait_for(state='detached', timeout=5000)
+        self.assertNotIn('Persona Que Marxa', self.page.content())
+        self.assertNotIn('deleted-', self.page.content())
+
+    def test_own_row_has_no_delete(self):
+        self.page.goto(BASE_URL + '/users')
+        self.page.wait_for_selector('table.users-table', timeout=10000)
+        menu = self.open_menu(TEST_USER['username'])
+        self.assertEqual(menu.locator('[data-action="delete"]').count(), 0)

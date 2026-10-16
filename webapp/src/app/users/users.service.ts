@@ -33,6 +33,11 @@ export class UsersService {
     return this.http.post<{ user: AdminUser }>(`/api/users/${userId}/${active ? 'activate' : 'deactivate'}`, {});
   }
 
+  /** Esborra (anonimitza) un usuari desactivat. No es pot desfer. */
+  delete(userId: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`/api/users/${userId}`);
+  }
+
   closeSessions(userId: string): Observable<{ user: AdminUser }> {
     return this.http.post<{ user: AdminUser }>(`/api/users/${userId}/close-sessions`, {});
   }

@@ -231,6 +231,139 @@ class UsersApiTestCase(unittest.TestCase):
         self.assertEqual(UserSessions.query.filter_by(user_id=self.boss.user_id).count(), 1)
 
     # ------------------------------------------------------------------
+    # Esborrat (anonimització)
+    # ------------------------------------------------------------------
+    def create_and_deactivate(self, username='op', full_name='Maria Puig'):
+        body = self.create(username=username, full_name=full_name).get_json()
+        user_id = body['user']['user_id']
+        self.admin.post(f'/api/users/{user_id}/deactivate')
+        return user_id, body['temporary_password']
+
+    def test_only_deactivated_users_can_be_deleted(self):
+        user_id = self.create().get_json()['user']['user_id']
+        r = self.admin.delete(f'/api/users/{user_id}')
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.get_json()['message_key'], 'MSG_DELETE_ACTIVE_USER')
+        self.assertIsNone(Users.query.filter_by(user_id=user_id).one().deleted_dts)
+
+    def test_delete_anonymizes_and_keeps_the_row(self):
+        user_id, _ = self.create_and_deactivate(username='maria', full_name='Maria Puig')
+        self.admin.put(f'/api/users/{user_id}', json={'full_name': 'Maria Puig', 'role': 'operator'})
+        Users.query.filter_by(user_id=user_id).one().language = 'ca'
+        db.session.commit()
+
+        r = self.admin.delete(f'/api/users/{user_id}')
+        self.assertEqual(r.status_code, 200)
+
+        row = Users.query.filter_by(user_id=user_id).one()   # la fila es conserva
+        self.assertEqual(row.username, 'deleted-' + user_id.replace('-', ''))
+        self.assertEqual(row.full_name, '')
+        self.assertIsNone(row.language)
+        self.assertEqual(row.password_hash, '!')
+        self.assertEqual(row.role, 'operator')               # es manté per a l'auditoria
+        self.assertFalse(row.is_active)
+        self.assertIsNotNone(row.deleted_dts)
+        self.assertIsNotNone(row.created_dts)
+
+    def test_no_personal_data_left_in_the_row(self):
+        """Ni el nom d'usuari ni el nom complet originals queden en cap columna."""
+        user_id, _ = self.create_and_deactivate(username='jordimas', full_name='Jordi Mas')
+        self.admin.delete(f'/api/users/{user_id}')
+        row = Users.query.filter_by(user_id=user_id).one()
+        values = ' '.join(str(getattr(row, c.name)) for c in Users.__table__.columns).lower()
+        self.assertNotIn('jordimas', values)
+        self.assertNotIn('jordi', values)
+
+    def test_new_username_does_not_derive_from_the_old_one(self):
+        """Dos usuaris amb el mateix nom esborrats en moments diferents no es poden relacionar."""
+        first, _ = self.create_and_deactivate(username='repetit')
+        self.admin.delete(f'/api/users/{first}')
+        second, _ = self.create_and_deactivate(username='repetit')
+        self.admin.delete(f'/api/users/{second}')
+        a = Users.query.filter_by(user_id=first).one().username
+        b = Users.query.filter_by(user_id=second).one().username
+        self.assertNotEqual(a, b)
+        self.assertNotIn('repetit', a + b)
+
+    def test_deleted_user_disappears_from_list(self):
+        user_id, _ = self.create_and_deactivate()
+        self.admin.delete(f'/api/users/{user_id}')
+        ids = [u['user_id'] for u in self.admin.get('/api/users').get_json()['users']]
+        self.assertNotIn(user_id, ids)
+
+    def test_deleted_user_does_not_exist_for_any_operation(self):
+        """No es pot reactivar, editar ni restablir: seria ressuscitar un compte anònim."""
+        user_id, _ = self.create_and_deactivate()
+        self.admin.delete(f'/api/users/{user_id}')
+        calls = [('PUT', f'/api/users/{user_id}', {'full_name': 'X', 'role': 'operator'}),
+                 ('POST', f'/api/users/{user_id}/activate', {}),
+                 ('POST', f'/api/users/{user_id}/deactivate', {}),
+                 ('POST', f'/api/users/{user_id}/reset-password', {}),
+                 ('POST', f'/api/users/{user_id}/close-sessions', {}),
+                 ('DELETE', f'/api/users/{user_id}', {})]
+        for method, path, body in calls:
+            with self.subTest(method=method, path=path):
+                r = self.admin.open(path, method=method, json=body)
+                self.assertEqual(r.status_code, 404)
+                self.assertEqual(r.get_json()['message_key'], 'MSG_USER_UNKNOWN')
+        self.assertFalse(Users.query.filter_by(user_id=user_id).one().is_active)
+
+    def test_deleted_user_cannot_log_in(self):
+        user_id, password = self.create_and_deactivate(username='op')
+        self.admin.delete(f'/api/users/{user_id}')
+        deleted_name = Users.query.filter_by(user_id=user_id).one().username
+        for username in ('op', deleted_name):
+            with self.subTest(username=username):
+                self.assertEqual(self.login_as(username, password)[1].status_code, 401)
+                self.assertEqual(self.login_as(username, '!')[1].status_code, 401)
+
+    def test_username_can_be_reused(self):
+        user_id, _ = self.create_and_deactivate(username='op')
+        self.admin.delete(f'/api/users/{user_id}')
+        r = self.create(username='op')
+        self.assertEqual(r.status_code, 201)
+        self.assertNotEqual(r.get_json()['user']['user_id'], user_id)
+
+    def test_cannot_delete_self(self):
+        r = self.admin.delete(f'/api/users/{self.boss.user_id}')
+        self.assertEqual(r.get_json()['message_key'], 'MSG_CANNOT_MODIFY_SELF')
+        self.assertIsNone(Users.query.filter_by(user_id=self.boss.user_id).one().deleted_dts)
+
+    def test_reserved_prefix(self):
+        r = self.create(username='deleted-abc')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.get_json()['message_key'], 'MSG_USERNAME_RESERVED')
+        self.assertEqual(r.get_json()['params'], {'prefix': 'deleted-'})
+
+    def test_cli_does_not_see_deleted_users(self):
+        user_id, _ = self.create_and_deactivate(username='op')
+        self.admin.delete(f'/api/users/{user_id}')
+        runner = self.app.test_cli_runner()
+        self.assertNotIn('deleted-', runner.invoke(args=['users', 'list']).output)
+        r = runner.invoke(args=['users', 'activate', 'deleted-' + user_id.replace('-', '')])
+        self.assertNotEqual(r.exit_code, 0)
+
+    def test_no_direct_user_queries_in_code(self):
+        """
+        Tota consulta d'usuaris ha de partir de mgr_auth.live_users(). Una
+        consulta directa a Users.query inclouria els esborrats, i podria fer
+        reaparèixer un compte anònim.
+        """
+        import re
+        app_dir = os.path.join(os.path.dirname(__file__), '..', 'app')
+        offenders = []
+        for base, _, files in os.walk(app_dir):
+            for name in files:
+                if not name.endswith('.py'):
+                    continue
+                with open(os.path.join(base, name), encoding='utf-8') as f:
+                    for n, line in enumerate(f, 1):
+                        if re.search(r'\bUsers\.query\b', line) and 'def live_users' not in line \
+                                and 'return Users.query.filter(Users.deleted_dts.is_(None))' not in line:
+                            offenders.append(f'{name}:{n}: {line.strip()}')
+        self.assertEqual(offenders, [], 'Feu servir mgr_auth.live_users()')
+
+    # ------------------------------------------------------------------
     # Rutes inexistents
     # ------------------------------------------------------------------
     def test_unknown_api_route_is_json_404(self):

@@ -32,6 +32,13 @@ ROLES = ('admin', 'operator')
 LANGUAGES = ('en', 'ca', 'es')
 
 USERNAME_MIN, USERNAME_MAX = 2, 64
+
+# Prefix dels noms d'usuari anonimitzats. Reservat: no es pot crear cap usuari
+# que en comenci, perquè no xoqui amb un usuari esborrat.
+DELETED_USERNAME_PREFIX = 'deleted-'
+
+# Valor que no és cap hash vàlid: verify_password sempre hi falla.
+UNUSABLE_PASSWORD_HASH = '!'
 USERNAME_RE = re.compile(r'^[a-z0-9._-]+$')
 FULL_NAME_MAX = 120
 
@@ -77,6 +84,8 @@ def normalize_username(username):
 def check_username(username):
     if not (USERNAME_MIN <= len(username) <= USERNAME_MAX) or not USERNAME_RE.match(username):
         raise AppError(Msg.USERNAME_INVALID, 400, min=USERNAME_MIN, max=USERNAME_MAX)
+    if username.startswith(DELETED_USERNAME_PREFIX):
+        raise AppError(Msg.USERNAME_RESERVED, 400, prefix=DELETED_USERNAME_PREFIX)
 
 
 def check_full_name(full_name):
@@ -97,8 +106,17 @@ def generate_temporary_password():
 # ----------------------------------------------------------------------
 # Usuaris
 # ----------------------------------------------------------------------
+def live_users():
+    """Usuaris no esborrats. Tota consulta d'usuaris hauria de partir d'aquí."""
+    return Users.query.filter(Users.deleted_dts.is_(None))
+
+
 def get_user_by_username(username):
-    return Users.query.filter_by(username=normalize_username(username)).first()
+    return live_users().filter(Users.username == normalize_username(username)).first()
+
+
+def get_user_by_id(user_id):
+    return live_users().filter(Users.user_id == user_id).first()
 
 
 def create_user(username, password, role, full_name='', must_change_password=False):
@@ -177,8 +195,8 @@ def _initial_password_no_longer_valid(user):
 
 
 def _other_active_admins(user):
-    return Users.query.filter(Users.role == 'admin', Users.is_active.is_(True),
-                              Users.user_id != user.user_id).count()
+    return live_users().filter(Users.role == 'admin', Users.is_active.is_(True),
+                               Users.user_id != user.user_id).count()
 
 
 def _check_admin_removal(user, acting_user):
@@ -201,6 +219,38 @@ def set_active(user, active, acting_user=None):
     user.is_active = bool(active)
     if not active:
         revoke_user_sessions(user, commit=False)
+    db.session.commit()
+
+
+def delete_user(user, acting_user=None):
+    """
+    Esborra un usuari anonimitzant-lo, no eliminant-ne la fila: l'auditoria hi
+    farà referència per user_id i ha de continuar quadrant.
+
+    Es conserven l'user_id, el perfil i les dates, que sense nom no identifiquen
+    ningú. Es buida tot el que és personal. El nom d'usuari nou surt de
+    l'user_id i no de l'antic: un hash del nom antic es podria revertir provant
+    noms, i seria una pseudonimització, no una anonimització.
+
+    El nom d'usuari original queda lliure i es pot tornar a fer servir: les
+    accions antigues continuaran apuntant a aquest user_id, no a la persona nova.
+
+    Només sobre usuaris desactivats, i mai sobre un mateix.
+    """
+    if acting_user is not None and acting_user.user_id == user.user_id:
+        raise AppError(Msg.CANNOT_MODIFY_SELF, 409)
+    if user.is_active:
+        raise AppError(Msg.DELETE_ACTIVE_USER, 409)
+    # Abans de canviar-li el nom: si era l'administrador inicial, el fitxer
+    # amb la seva contrasenya ja no té sentit.
+    _initial_password_no_longer_valid(user)
+    user.username = DELETED_USERNAME_PREFIX + user.user_id.replace('-', '')
+    user.full_name = ''
+    user.language = None
+    user.password_hash = UNUSABLE_PASSWORD_HASH
+    user.must_change_password = False
+    user.deleted_dts = utcnow()
+    revoke_user_sessions(user, commit=False)
     db.session.commit()
 
 
