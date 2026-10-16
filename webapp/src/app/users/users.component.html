@@ -44,17 +44,27 @@
           <td class="text-center">{{ u.active_sessions }}</td>
           <td class="text-end">
             <div class="dropdown">
+              <!-- strategy fixed: el menú es posiciona respecte a la finestra i no
+                   el retalla el table-responsive, que té overflow. Si no hi cap per
+                   baix, Bootstrap l'obre cap amunt. -->
               <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                      data-bs-toggle="dropdown" aria-expanded="false" data-row-actions>
+                      data-bs-toggle="dropdown" aria-expanded="false" data-row-actions
+                      data-bs-popper-config='{"strategy":"fixed"}'>
                 {{ 'Actions' | translate }}
               </button>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li><button class="dropdown-item" type="button" data-action="edit" (click)="edit(u)">{{ 'Edit' | translate }}</button></li>
                 <li><button class="dropdown-item" type="button" data-action="reset" (click)="resetPassword(u)">{{ 'Reset password' | translate }}</button></li>
-                <li><button class="dropdown-item" type="button" data-action="close-sessions" (click)="closeSessions(u)"
-                            [disabled]="u.active_sessions === 0">{{ 'Close sessions' | translate }}</button></li>
-                <li><hr class="dropdown-divider"></li>
-                <!-- Ningú es pot desactivar a si mateix: el servidor també ho impedeix. -->
+                <li>
+                  <button class="dropdown-item" type="button" data-action="close-sessions" (click)="closeSessions(u)"
+                          [disabled]="!canCloseSessions(u)">
+                    <ng-container *ngIf="!isSelf(u)">{{ 'Close sessions' | translate }}</ng-container>
+                    <ng-container *ngIf="isSelf(u)">{{ 'Close other sessions' | translate }}</ng-container>
+                  </button>
+                </li>
+                <!-- Ningú es pot desactivar a si mateix: el servidor també ho impedeix.
+                     A la pròpia fila activa no hi ha res sota el separador. -->
+                <li *ngIf="!u.is_active || !isSelf(u)"><hr class="dropdown-divider"></li>
                 <li *ngIf="u.is_active && !isSelf(u)">
                   <button class="dropdown-item text-danger" type="button" data-action="deactivate" (click)="deactivate(u)">{{ 'Deactivate' | translate }}</button>
                 </li>

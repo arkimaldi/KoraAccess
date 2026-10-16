@@ -101,10 +101,23 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.run(this.service.setActive(u.user_id, true));
   }
 
+  /**
+   * Sobre un altre usuari, les tanca totes. Sobre un mateix, el servidor manté la
+   * sessió que s'està fent servir i tanca les altres: tancar-la també equivaldria
+   * a fer-se fora sense voler. La pantalla ho diu així.
+   */
   closeSessions(u: AdminUser): void {
-    this.confirm({ titleKey: '_sys_actionCloseSessions', textKey: '_sys_confirmCloseSessions',
-                   params: { username: u.username }, confirmKey: '_sys_actionCloseSessions' }, () =>
+    const self = this.isSelf(u);
+    const key = self ? '_sys_actionCloseOtherSessions' : '_sys_actionCloseSessions';
+    this.confirm({ titleKey: key,
+                   textKey: self ? '_sys_confirmCloseOtherSessions' : '_sys_confirmCloseSessions',
+                   params: { username: u.username }, confirmKey: key }, () =>
       this.run(this.service.closeSessions(u.user_id)));
+  }
+
+  /** Sobre un mateix, sempre hi ha la sessió actual: només té sentit si n'hi ha més. */
+  canCloseSessions(u: AdminUser): boolean {
+    return this.isSelf(u) ? u.active_sessions > 1 : u.active_sessions > 0;
   }
 
   // --- utilitats -----------------------------------------------------

@@ -197,6 +197,12 @@ class E2ETestCase(unittest.TestCase):
         if failed:
             os.makedirs(ARTIFACTS_DIR, exist_ok=True)
             self.page.screenshot(path=os.path.join(ARTIFACTS_DIR, f'{self.id()}.png'))
+        # Es tanca la sessió: les proves d'una classe comparteixen servidor, i
+        # una sessió que quedés oberta es comptaria a la prova següent.
+        try:
+            self.page.request.post(BASE_URL + '/api/auth/logout', headers=CSRF_HEADERS)
+        except Exception:
+            pass
         self.page.close()
 
     # --- utilitats -----------------------------------------------------

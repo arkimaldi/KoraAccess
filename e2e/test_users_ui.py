@@ -157,3 +157,111 @@ class OperatorCannotManageUsersTest(E2ETestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+
+class RowMenuNotClippedTest(E2ETestCase):
+    """
+    Regressió: el desplegable d'accions quedava retallat dins del contenidor de
+    la taula (table-responsive) i calia fer scroll per veure les opcions. Passava
+    sobretot amb poques files, quan la taula és baixa.
+    """
+
+    USERS = [TEST_USER, OPERATOR]
+
+    def item_is_reachable(self, item):
+        """
+        Cert si un clic al centre de l'opció hi arribaria de debò. Un element
+        retallat per overflow continua sent «visible» per a Playwright, però al
+        seu punt hi ha un altre element: per això es comprova amb elementFromPoint.
+        """
+        box = item.bounding_box()
+        if box is None:
+            return False
+        x, y = box['x'] + box['width'] / 2, box['y'] + box['height'] / 2
+        # Bootstrap posa pointer-events: none a les opcions desactivades, i
+        # elementFromPoint les travessa: per a aquestes, n'hi ha prou que el
+        # punt caigui dins del menú, que és el que fallaria si estigués retallat.
+        return self.page.evaluate(
+            '''([x, y, el]) => {
+                 const hit = document.elementFromPoint(x, y);
+                 if (!hit) { return false; }
+                 const target = el.disabled ? el.closest('.dropdown-menu') : el;
+                 return target.contains(hit);
+               }''',
+            [x, y, item.element_handle()])
+
+    def test_every_option_reachable_without_scrolling(self):
+        self.page.goto(BASE_URL + '/users')
+        self.page.wait_for_selector('table.users-table', timeout=10000)
+        for username in (TEST_USER['username'], OPERATOR['username']):
+            with self.subTest(username=username):
+                row = self.page.locator(f'tr[data-username="{username}"]')
+                row.locator('[data-row-actions]').click()
+                self.page.wait_for_selector(f'tr[data-username="{username}"] .dropdown-menu.show')
+                items = row.locator('.dropdown-menu.show .dropdown-item')
+                self.assertGreater(items.count(), 0)
+                for i in range(items.count()):
+                    self.assertTrue(self.item_is_reachable(items.nth(i)),
+                                    f'opció {items.nth(i).inner_text()!r} retallada')
+                self.page.keyboard.press('Escape')
+                self.page.wait_for_timeout(200)
+
+
+class CloseOwnSessionsTest(E2ETestCase):
+    """
+    Sobre la pròpia fila, l'acció tanca les altres sessions i manté l'actual: si
+    la tanqués, l'administrador es faria fora a si mateix sense voler.
+    """
+
+    USERS = [TEST_USER]
+
+    def own_row(self):
+        return self.page.locator(f'tr[data-username="{TEST_USER["username"]}"]')
+
+    def open_own_menu(self):
+        self.page.goto(BASE_URL + '/users')
+        self.page.wait_for_selector('table.users-table', timeout=10000)
+        self.own_row().locator('[data-row-actions]').click()
+        return self.own_row().locator('[data-action="close-sessions"]')
+
+    def test_disabled_with_only_the_current_session(self):
+        action = self.open_own_menu()
+        self.assertEqual(action.inner_text().strip(), 'Close other sessions')
+        self.assertTrue(action.is_disabled())
+
+    def test_closes_the_others_and_keeps_the_current_one(self):
+        other = self.browser.new_page(locale=self.LOCALE)
+        try:
+            other.request.post(BASE_URL + '/api/auth/login', headers=CSRF_HEADERS,
+                               data={'username': TEST_USER['username'], 'password': TEST_USER['password']})
+            self.assertEqual(other.request.get(BASE_URL + '/api/auth/me').status, 200)
+
+            action = self.open_own_menu()
+            self.assertFalse(action.is_disabled())
+            action.click()
+            self.page.wait_for_selector('kora-modal-confirm .modal-content')
+            self.assertEqual(self.page.locator('kora-modal-confirm .modal-body').inner_text().strip(),
+                             'Close all your other open sessions? The session you are using now will stay open.')
+            self.page.click('kora-modal-confirm [data-modal-confirm]')
+            self.page.wait_for_timeout(800)
+
+            # L'altra s'ha tancat; la d'aquí continua
+            self.assertEqual(other.request.get(BASE_URL + '/api/auth/me').status, 401)
+            self.assertEqual(self.page.request.get(BASE_URL + '/api/auth/me').status, 200)
+            self.assertEqual(self.page.locator('kora-login').count(), 0)
+            self.assertIn('1', self.own_row().locator('td').nth(5).inner_text())
+        finally:
+            other.close()
+
+
+class OwnRowLabelCatalanTest(E2ETestCase):
+    """La marca de la pròpia fila, en català."""
+
+    LOCALE = 'ca-ES'
+
+    def test_label(self):
+        self.page.goto(BASE_URL + '/users')
+        self.page.wait_for_selector('table.users-table', timeout=10000)
+        self.page.wait_for_timeout(300)
+        own = self.page.locator(f'tr[data-username="{TEST_USER["username"]}"] .badge').first
+        self.assertEqual(own.inner_text().strip(), 'Vostè')

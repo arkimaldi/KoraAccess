@@ -49,6 +49,11 @@
         "en.json": "Change password",
         "es.json": "Cambiar contraseña"
     },
+    "Close other sessions": {
+        "ca.json": "Tanca les altres sessions",
+        "en.json": "Close other sessions",
+        "es.json": "Cerrar las demás sesiones"
+    },
     "Close sessions": {
         "ca.json": "Tanca les sessions",
         "en.json": "Close sessions",
@@ -480,7 +485,7 @@
         "es.json": "Usuarios"
     },
     "You": {
-        "ca.json": "Vós",
+        "ca.json": "Vostè",
         "en.json": "You",
         "es.json": "Usted"
     },
@@ -493,6 +498,11 @@
         "ca.json": "Assignar a porta",
         "en.json": "Assign to door",
         "es.json": "Asignar a puerta"
+    },
+    "_sys_actionCloseOtherSessions": {
+        "ca.json": "Tanca les altres sessions",
+        "en.json": "Close other sessions",
+        "es.json": "Cerrar las demás sesiones"
     },
     "_sys_actionCloseSessions": {
         "ca.json": "Tanca les sessions",
@@ -528,6 +538,11 @@
         "ca.json": "Confirma",
         "en.json": "Confirm",
         "es.json": "Confirmar"
+    },
+    "_sys_confirmCloseOtherSessions": {
+        "ca.json": "Tancar totes les altres sessions que teniu obertes? La sessió que esteu fent servir ara es mantindrà oberta.",
+        "en.json": "Close all your other open sessions? The session you are using now will stay open.",
+        "es.json": "¿Cerrar todas sus demás sesiones abiertas? La sesión que está usando ahora seguirá abierta."
     },
     "_sys_confirmCloseSessions": {
         "ca.json": "Tancar totes les sessions obertes de {{username}}? Haurà de tornar a iniciar la sessió.",
